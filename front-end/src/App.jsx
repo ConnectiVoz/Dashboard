@@ -33,6 +33,13 @@ const App = () => {
   if (!isLoggedIn) {
     sessionStorage.removeItem("token");
   }
+  if(!isLoggedIn){
+    navigate("/login", { replace: true });
+  }
+  if(sessionStorage.removeItem("isLoggedIn") === "true"){
+    sessionStorage.removeItem("token");
+    navigate("/login", { replace: true });
+  }
 
   const hideNavbar = location.pathname === "/login" || location.pathname === "/signup";
 
@@ -65,6 +72,9 @@ const App = () => {
 
   const handleLogin = () => {
     setIsLoggedIn(true);
+    // if (!sessionStorage.getItem("token")) {
+    //   sessionStorage.setItem("token", "your-auth-token");
+    //  } // Replace with actual token logic
     sessionStorage.setItem("isLoggedIn", "true");
     navigate("/dashboard");
   };

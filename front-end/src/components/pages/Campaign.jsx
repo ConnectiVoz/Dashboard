@@ -14,14 +14,12 @@ export default function CampaignPage() {
   const [campaignName, setCampaignName] = useState("");
   const [scheduleDateTime, setScheduleDateTime] = useState("");
   const [showFileInput, setShowFileInput] = useState(false);
-  const [runCampaignId, setRunCampaignId] = useState("");
-  const [showRunCampaignPrompt, setShowRunCampaignPrompt] = useState(false);
-  const [runningCampaign, setRunningCampaign] = useState(false);
-  const [selectedBotId, setSelectedBotId] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState({});
   const [uploading, setUploading] = useState(false);
   const [expandedFiles, setExpandedFiles] = useState({});
-  const [campaignStatusMap, setCampaignStatusMap] = useState({});
+  const [selectedBotId, setSelectedBotId] = useState("");
+  const [runningCampaigns, setRunningCampaigns] = useState([]);
+
 
   useEffect(() => {
     fetchCampaigns();
@@ -192,40 +190,57 @@ export default function CampaignPage() {
     }
     setLoading(false);
   };
-
-  const openRunCampaignPrompt = () => {
-    setRunCampaignId(selectedCampaignIds[0] || "");
-    setShowRunCampaignPrompt(true);
-  };
-
-  const handleRunCampaign = async () => {
-    if (!runCampaignId) return alert("Please enter a campaign ID to run.");
-    setRunningCampaign(true);
+ const handleStartCampaign = async (campaignId) => {
+    setRunningCampaigns((prev) => [...prev, campaignId]);
     try {
       const res = await fetch(
-        `https://3.95.238.222/api/campaigns/run-campaign/${runCampaignId}`,
+        `https://3.95.238.222/api/campaigns/run-campaign/${campaignId}`,
         {
           method: "POST",
           headers: {
             "Authorization": "Bearer " + sessionStorage.getItem("token"),
-            "Content-Type": "application/json",
           },
         }
       );
+      console.log("Start campaign response:", res);
       if (res.ok) {
-        alert("Campaign run successfully");
-        setShowRunCampaignPrompt(false);
+        alert("Campaign started successfully!");
         fetchCampaigns();
       } else {
-        throw new Error("Failed to run campaign");
+        alert("Failed to start campaign.");
+        setRunningCampaigns((prev) => prev.filter((id) => id !== campaignId));
       }
     } catch (err) {
-      console.error("Run campaign error:", err);
-      alert("Failed to run campaign");
+      console.error("Start campaign error:", err);
+      alert("Error starting campaign.");
+      setRunningCampaigns((prev) => prev.filter((id) => id !== campaignId));
     }
-    setRunningCampaign(false);
   };
 
+  const handleStopCampaign = async (campaignId) => {
+    try {
+      const res = await fetch(
+        `https://3.95.238.222/api/campaigns/stop-campaign/${campaignId}`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + sessionStorage.getItem("token"),
+          },
+        }
+      );
+      console.log("Stop campaign response:", res);
+      setRunningCampaigns((prev) => prev.filter((id) => id !== campaignId));
+      if (res.ok) {
+        alert("Campaign stopped successfully!");
+        fetchCampaigns();
+      } else {
+        alert("Failed to stop campaign.");
+      }
+    } catch (err) {
+      console.error("Stop campaign error:", err);
+      alert("Error stopping campaign.");
+    }
+  };
   const groupedPeople = peopleList.reduce((acc, person) => {
     const file = person.source_file || "Unknown File";
     acc[file] = acc[file] || [];
@@ -241,18 +256,15 @@ export default function CampaignPage() {
   };
 
   return (
-<div className="p-6 min-h-screen bg-gray-100 text-gray-900 dark:bg-gradient-to-br dark:from-gray-900 dark:to-black dark:text-white">
+    <div className="p-6 min-h-screen bg-gray-100 text-gray-900 dark:bg-gradient-to-br dark:from-gray-900 dark:to-black dark:text-white">
       <h1 className="text-3xl font-bold mb-6 text-center">📊 Campaign Manager</h1>
 
-      {/* Form to Create Campaign */}
+      {/* Create Campaign Form */}
       <div className="mb-6 flex flex-col md:flex-row gap-4 items-end">
         <select
           className="border rounded p-2 text-black bg-white/10 backdrop-blur-md"
           value={selectedBotId}
-          onChange={(e) => {
-            setSelectedBotId(e.target.value);
-            console.log("Selected bot ID:", e.target.value); 
-          }}
+          onChange={(e) => setSelectedBotId(e.target.value)}
         >
           <option value="">Select a bot</option>
           {bots.map((bot) => (
@@ -284,7 +296,7 @@ export default function CampaignPage() {
         </button>
       </div>
 
-      {/* Search, Upload, People List Buttons */}
+      {/* Buttons Row */}
       <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
         <input
           type="text"
@@ -332,16 +344,8 @@ export default function CampaignPage() {
           >
             List People
           </button>
-          <button
-            onClick={openRunCampaignPrompt}
-            className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg"
-          >
-            Run Campaign
-          </button>
         </div>
       </div>
-  
-    
 
       {/* Campaign Table */}
       <div className="overflow-x-auto bg-white/5 rounded-xl backdrop-blur-md mb-8">
@@ -351,106 +355,63 @@ export default function CampaignPage() {
               <th className="px-4 py-3">Select</th>
               <th className="px-6 py-3">Sr No.</th>
               <th className="px-6 py-3">Call List</th>
-              <th className="px-6 py-3" type="alphanumeric">Campaign ID</th>
+              <th className="px-6 py-3">Campaign ID</th>
               <th className="px-6 py-3">Scheduled DateTime</th>
               <th className="px-6 py-3">Status</th>
               <th className="px-6 py-3">Actions</th>
             </tr>
           </thead>
-         <tbody>
-  {filteredCampaigns.map((c, index) => {
-    const status = campaignStatusMap[c.campaign_id] || "initial";
-    return (
-      <tr key={c.campaign_id} className="hover:bg-white/10">
-        <td className="px-4 py-3 text-center">
-          <input
-            type="checkbox"
-            checked={selectedCampaignIds.includes(c.campaign_id)}
-            onChange={() => handleCheckboxChange(c.campaign_id)}
-          />
-        </td>
-        <td className="px-6 py-3">{index + 1}</td>
-        <td className="px-6 py-3">{c.campaign_name}</td>
-        <td className="px-6 py-3">{c.campaign_id}</td>
-        <td className="px-6 py-3">
-          {new Date(c.campaign_scheduled_datetime).toLocaleString()}
-        </td>
-        <td className="px-6 py-3">{c.campaign_status || "Active"}</td>
-        <td className="px-6 py-3 text-center">
-          {status === "initial" && (
-            <button
-              className="text-green-500 hover:text-green-700"
-              onClick={() =>
-                setCampaignStatusMap((prev) => ({
-                  ...prev,
-                  [c.campaign_id]: "running",
-                }))
-              }
-            >
-              ▶️
-            </button>
-          )}
-          {status === "running" && (
-            <button
-              className="text-yellow-500 hover:text-yellow-700"
-              onClick={() =>
-                setCampaignStatusMap((prev) => ({
-                  ...prev,
-                  [c.campaign_id]: "paused",
-                }))
-              }
-            >
-              ⏸️
-            </button>
-          )}
-          {status === "paused" && (
-            <button
-              className="text-blue-500 hover:text-blue-700"
-              onClick={() =>
-                setCampaignStatusMap((prev) => ({
-                  ...prev,
-                  [c.campaign_id]: "resumed",
-                }))
-              }
-            >
-              🔁
-            </button>
-          )}
-          {status === "resumed" && (
-            <button
-              className="text-red-500 hover:text-red-700"
-              onClick={() =>
-                setCampaignStatusMap((prev) => ({
-                  ...prev,
-                  [c.campaign_id]: "stopped",
-                }))
-              }
-            >
-              ⏹️
-            </button>
-          )}
-          {status === "stopped" && (
-            <span className="text-gray-400">✔️ Done</span>
-          )}
-        </td>
-      </tr>
-    );
-  })}
+          <tbody>
+            {filteredCampaigns.map((c, index) => (
+              <tr key={c.campaign_id} className="hover:bg-white/10">
+                <td className="px-4 py-3 text-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedCampaignIds.includes(c.campaign_id)}
+                    onChange={() => handleCheckboxChange(c.campaign_id)}
+                  />
+                </td>
+                <td className="px-6 py-3">{index + 1}</td>
+                <td className="px-6 py-3">{c.campaign_name}</td>
+                <td className="px-6 py-3">{c.campaign_id}</td>
+                <td className="px-6 py-3">
+                  {new Date(c.campaign_scheduled_datetime).toLocaleString()}
+                </td>
+                <td className="px-6 py-3">{c.campaign_status || "Active"}</td>
+             <td className="px-6 py-3 text-center">
+    {runningCampaigns.includes(c.campaign_id) ? (
+      <button
+        onClick={() => handleStopCampaign(c.campaign_id)}
+        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+      >
+        Stop
+      </button>
+    ) : (
+      <button
+        onClick={() => handleStartCampaign(c.campaign_id)}
+        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded"
+      >
+        Run Campaign
+      </button>
+    )}
+  </td>
 
-  {filteredCampaigns.length === 0 && (
-    <tr>
-      <td colSpan="7" className="text-center py-6">
-        No campaigns found
-      </td>
-    </tr>
-  )}
-</tbody>
+              </tr>
+            ))}
+
+            {filteredCampaigns.length === 0 && (
+              <tr>
+                <td colSpan="7" className="text-center py-6">
+                  No campaigns found
+                </td>
+              </tr>
+            )}
+          </tbody>
         </table>
       </div>
 
-
       {/* People Table */}
-     {peopleList.length > 0 && (
+      {peopleList.length > 0 && (
         <div className="bg-white/10 p-4 rounded-xl backdrop-blur-md">
           <h2 className="text-xl font-semibold mb-4">👥 People Grouped by File</h2>
           {Object.entries(groupedPeople).map(([fileName, group]) => {
@@ -489,38 +450,6 @@ export default function CampaignPage() {
               </div>
             );
           })}
-          </div>
-      )}
-
-
-      {/* Run Campaign Prompt */}
-      {showRunCampaignPrompt && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-gray-800 p-6 rounded-lg w-80">
-            <h3 className="text-lg font-semibold mb-4 text-white">Run Campaign</h3>
-            <input
-              type="text"
-              placeholder="Enter Campaign ID"
-              value={runCampaignId}
-              onChange={(e) => setRunCampaignId(e.target.value)}
-              className="w-full px-3 py-2 rounded bg-white/10 text-white mb-4"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowRunCampaignPrompt(false)}
-                className="px-3 py-1 bg-red-600 rounded hover:bg-red-700 text-white"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleRunCampaign}
-                className="px-3 py-1 bg-green-600 rounded hover:bg-green-700 text-white"
-                disabled={runningCampaign}
-              >
-                {runningCampaign ? "Running..." : "Run"}
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

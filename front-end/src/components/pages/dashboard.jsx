@@ -31,6 +31,7 @@ const Dashboard = () => {
           "Authorization": `Bearer ${token}`,
         },
       });
+      console.log("📊 Dashboard fetch response:", response);
 
       const text = await response.text();
       const json = JSON.parse(text);

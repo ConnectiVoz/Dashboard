@@ -21,7 +21,7 @@ const Navbar = ({ toggleTheme, darkMode }) => {
         const res = await fetch("https://3.95.238.222/api/user/user-profile/", {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${token}`,
+            "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
@@ -47,9 +47,9 @@ const Navbar = ({ toggleTheme, darkMode }) => {
   if (hideFullNavbar) return null;
 
   const handleLogout = () => {
-    sessionStorage.removeItem("token");
-    navigate("/login");
-  };
+  sessionStorage.removeItem("token");  // ✅ Clear token
+  navigate("/Login");                  // 🔁 Redirect to login
+};
 
   return (
     <nav
