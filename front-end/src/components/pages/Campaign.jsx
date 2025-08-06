@@ -355,7 +355,7 @@ export default function CampaignPage() {
               <th className="px-4 py-3">Select</th>
               <th className="px-6 py-3">Sr No.</th>
               <th className="px-6 py-3">Call List</th>
-              <th className="px-6 py-3">Campaign ID</th>
+              {/* <th className="px-6 py-3">Campaign ID</th> */}
               <th className="px-6 py-3">Scheduled DateTime</th>
               <th className="px-6 py-3">Status</th>
               <th className="px-6 py-3">Actions</th>
@@ -373,7 +373,7 @@ export default function CampaignPage() {
                 </td>
                 <td className="px-6 py-3">{index + 1}</td>
                 <td className="px-6 py-3">{c.campaign_name}</td>
-                <td className="px-6 py-3">{c.campaign_id}</td>
+                {/* <td className="px-6 py-3">{c.campaign_id}</td> */}
                 <td className="px-6 py-3">
                   {new Date(c.campaign_scheduled_datetime).toLocaleString()}
                 </td>

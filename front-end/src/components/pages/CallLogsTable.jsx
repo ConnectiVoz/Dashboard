@@ -14,6 +14,9 @@ export default function CallLogsTable() {
   const [uploadFile, setUploadFile] = useState(null);
   const [downloadId, setDownloadId] = useState("");
   const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    phone_number: "",
     status: "",
     call_date: "",
     campaign: "",
@@ -167,6 +170,8 @@ export default function CallLogsTable() {
       <table className="min-w-full text-sm text-left">
           <thead className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100">
             <tr>
+              <th className="p-2">Name</th>
+              <th className="p-2">Phone</th>
               <th className="p-2">Status</th>
               <th className="p-2">Call Date</th>
               <th className="p-2">Campaign Name</th>
@@ -181,6 +186,8 @@ export default function CallLogsTable() {
                 key={i}
                 className="border-t border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white"
               >
+                <td className="p-2">{`${log.person.first_name} ${log.person.last_name}`}</td>
+                <td className="p-2">{log.person.phone_number}</td>
                 <td className="p-2">{log.status}</td>
                 <td className="p-2">{log.call_date}</td>
                 <td className="p-2">{log.campaign}</td>
@@ -215,6 +222,8 @@ export default function CallLogsTable() {
               </span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm text-gray-800 dark:text-gray-200">
+              <div><strong>Name:</strong> {`${log.person.first_name} ${log.person.last_name}`}</div>
+              <div><strong>Phone:</strong> {log.person.phone_number}</div>
               <div><strong>Status:</strong> {log.status}</div>
               <div><strong>Campaign:</strong> {log.campaign}</div>
               <div><strong>Call Date:</strong> {log.call_date}</div>
