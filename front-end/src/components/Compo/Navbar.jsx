@@ -47,8 +47,8 @@ const Navbar = ({ toggleTheme, darkMode }) => {
   if (hideFullNavbar) return null;
 
   const handleLogout = () => {
-  sessionStorage.removeItem("token");  // ✅ Clear token
-  navigate("/Login");                  // 🔁 Redirect to login
+     sessionStorage.clear();
+      navigate("/login", { replace: true });
 };
 
   return (

@@ -24,20 +24,12 @@ import ManageAgents from "./components/pages/ManageAgents";
 const App = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const navigationType = useNavigationType(); // 🚨 Detects how user navigated
-
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return sessionStorage.getItem("isLoggedIn") === "true";
-  });
-
-  if (!isLoggedIn) {
-    sessionStorage.removeItem("token");
-  }
-
-  const hideNavbar = location.pathname === "/login" || location.pathname === "/signup";
+  const navigationType = useNavigationType();
 
   const [darkMode, setDarkMode] = useState(true);
   const toggleTheme = () => setDarkMode((prev) => !prev);
+
+  const hideNavbar = location.pathname === "/login" || location.pathname === "/signup";
 
   useEffect(() => {
     const root = document.documentElement;
@@ -45,36 +37,33 @@ const App = () => {
     root.classList.add(darkMode ? "dark" : "light");
   }, [darkMode]);
 
-  // 🚫 Restrict direct/manual route access
+  // 🚫 Manual navigation protection
   useEffect(() => {
     const publicPaths = ["/login", "/signup", "/reset-password"];
     const isPublic = publicPaths.includes(location.pathname.toLowerCase());
+    const isManual = navigationType === "POP";
+    const token = sessionStorage.getItem("token");
 
-    const isManual = navigationType === "POP"; // 🚨 Manual typing / browser back / reload
-
-    // 🚨 If user is logged in and tried to go to login/signup manually
-    if (isManual && isLoggedIn && isPublic) {
+    if (isManual && token && isPublic) {
       navigate("/dashboard", { replace: true });
     }
-
-    // 🚨 If user is NOT logged in and tried to access protected route manually
-    if (isManual && !isLoggedIn && !isPublic) {
+    if (isManual && !token && !isPublic) {
       navigate("/login", { replace: true });
     }
-  }, [isLoggedIn, location.pathname, navigationType, navigate]);
+  }, [location.pathname, navigationType, navigate]);
 
   const handleLogin = () => {
-    setIsLoggedIn(true);
-    sessionStorage.setItem("isLoggedIn", "true");
     navigate("/dashboard");
   };
 
   const PrivateRoute = ({ children }) => {
-    return isLoggedIn ? children : <Navigate to="/login" replace />;
+    const token = sessionStorage.getItem("token");
+    return token ? children : <Navigate to="/login" replace />;
   };
 
   const PublicRoute = ({ children }) => {
-    return isLoggedIn ? <Navigate to="/dashboard" replace /> : children;
+    const token = sessionStorage.getItem("token");
+    return token ? <Navigate to="/dashboard" replace /> : children;
   };
 
   return (
@@ -157,9 +146,15 @@ const App = () => {
               </PrivateRoute>
             }
           />
+          <Route
+            path="/ManageAgents"
+            element={
+              <PrivateRoute>
+                <ManageAgents />
+              </PrivateRoute>
+            }
+          />
           <Route path="*" element={<ErrorPage />} />
-          <Route path="/ManageAgents" element={<ManageAgents />} />
-
         </Routes>
       </div>
     </div>

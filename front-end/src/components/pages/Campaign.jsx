@@ -385,7 +385,7 @@ export default function CampaignPage() {
         className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
       >
         Stop
-      </button>
+      </button> 
     ) : (
       <button
         onClick={() => handleStartCampaign(c.campaign_id)}
