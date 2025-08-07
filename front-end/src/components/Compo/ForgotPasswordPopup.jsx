@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { toast } from "react-toastify";
 
 const ForgotPasswordPopup = ({ onClose }) => {
   const [email, setEmail] = useState("");
@@ -13,7 +14,7 @@ const ForgotPasswordPopup = ({ onClose }) => {
     if (!email) return;
 
     try {
-      const response = await fetch("https://3.95.238.222/api/user/forgot-password/?email=${resetEmail}", {
+      const response = await fetch(`https://3.95.238.222/api/user/forgot-password/?email=${email}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -22,6 +23,7 @@ const ForgotPasswordPopup = ({ onClose }) => {
       });
 
       if (response.ok) {
+        toast.success("Reset link sent to your email!");
         setMessage("Reset link sent to your email!");
         setTimeout(() => {
           onClose();
@@ -30,18 +32,18 @@ const ForgotPasswordPopup = ({ onClose }) => {
         }, 2000);
       } else {
         const resData = await response.json();
+        toast.error(resData.message || "Failed to send reset link.");
         setError(resData.message || "Failed to send reset link.");
       }
     } catch (err) {
+      toast.error("Something went wrong. Please try again.");
       setError("Something went wrong. Please try again.");
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex justify-center items-center z-[1000]">
-      {/* Popup Card */}
       <div className="relative bg-white p-8 rounded-xl w-[90%] max-w-md shadow-2xl z-10">
-        {/* Close Button */}
         <button
           className="absolute top-2 right-4 text-2xl text-gray-700 hover:text-red-500"
           onClick={onClose}
@@ -67,12 +69,8 @@ const ForgotPasswordPopup = ({ onClose }) => {
             />
           </div>
 
-          {message && (
-            <div className="text-green-600 text-center text-sm">{message}</div>
-          )}
-          {error && (
-            <div className="text-red-600 text-center text-sm">{error}</div>
-          )}
+          {message && <div className="text-green-600 text-center text-sm">{message}</div>}
+          {error && <div className="text-red-600 text-center text-sm">{error}</div>}
 
           <button
             type="submit"

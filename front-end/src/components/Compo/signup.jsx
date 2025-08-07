@@ -13,10 +13,6 @@ export default function Signup({ onSignup }) {
     city: "",
     state: "",
   });
-   const[data, setData] = useState({
-    first_name: "",
-    phone_number: "",
-  });
   const [showPassword, setShowPassword] = useState(false);
   const [signupError, setSignupError] = useState("");
   const [signupSuccess, setSignupSuccess] = useState("");
@@ -27,70 +23,71 @@ export default function Signup({ onSignup }) {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSignupError("");
-    setSignupSuccess("");
+  e.preventDefault();
+  setSignupError("");
+  setSignupSuccess("");
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phoneRegex = /^\d{10}$/;
-    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^\d{10}$/;
+  const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
-    if (!formData.firstName || !formData.email || !formData.password) {
-      setSignupError("First name, email, and password are required.");
-      return;
-    }
+  if (!formData.firstName || !formData.email || !formData.password) {
+    setSignupError("First name, email, and password are required.");
+    return;
+  }
 
-    if (!emailRegex.test(formData.email)) {
-      setSignupError("Invalid email format.");
-      return;
-    }
+  if (!emailRegex.test(formData.email)) {
+    setSignupError("Invalid email format.");
+    return;
+  }
 
-    if (!phoneRegex.test(formData.phone)) {
-      setSignupError("Phone number must be 10 digits.");
-      return;
-    }
+  if (!phoneRegex.test(formData.phone)) {
+    setSignupError("Phone number must be 10 digits.");
+    return;
+  }
 
-    if (!passwordRegex.test(formData.password)) {
-      setSignupError("Password must have 8+ chars, 1 capital, 1 number, and 1 special character.");
-      return;
-    }
+  if (!passwordRegex.test(formData.password)) {
+    setSignupError("Password must have 8+ chars, 1 capital, 1 number, and 1 special character.");
+    return;
+  }
 
-    try {
-      const response = await fetch("https://3.95.238.222/api/user/register/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          phone_number: formData.phone,
-          password: formData.password,
-          company_name: formData.company,
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-        }),
-      });
-        sessionStorage.setItem("user", JSON.stringify({
-        first_name: data.first_name,      
-        phone_number: data.phone_number      
-      }));
-
-      if (response.ok) {
-        setSignupSuccess("Signup successful! Redirecting to dashboard...");
-
-        // Call onSignup prop for parent update and redirect
-        if (onSignup) onSignup();
-      } else {
-        const err = await response.json();
-        setSignupError(err.message || "Signup failed. Try again.");
-      }
-    } catch (error) {
-      setSignupError("Network error. Please try again.");
-    }
+  const payload = {
+    first_name: formData.firstName,
+    last_name: formData.lastName,
+    email: formData.email,
+    phone_number: formData.phone,
+    password: formData.password,
+    company_name: formData.company,
+    address: formData.address,
+    city: formData.city,
+    state: formData.state,
   };
+
+  console.log("Registering user with data:", payload); // Confirm this logs correctly
+
+  try {
+    const response = await fetch("https://3.95.238.222/api/user/register/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const resData = await response.json();
+
+    if (response.ok) {
+      setSignupSuccess("Signup successful! Redirecting to dashboard...");
+      sessionStorage.setItem("user", JSON.stringify(payload));
+      if (onSignup) onSignup();
+    } else {
+      setSignupError(resData.detail || resData.message || "Signup failed. Try again.");
+    }
+  } catch (error) {
+    setSignupError("Network error. Please try again.");
+  }
+};
+
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-black relative overflow-hidden font-sans py-10 px-4">

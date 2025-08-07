@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { FaDownload, FaUpload, FaPlus, FaBars } from "react-icons/fa";
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
-// import SearchAndFilter from "./SearchAndFilter";
+import { toast } from "react-toastify"; // ✅ Added
+
 export default function CallLogsTable() {
   const [callLogs, setCallLogs] = useState([]);
   const [filteredLogs, setFilteredLogs] = useState([]);
@@ -27,7 +28,7 @@ export default function CallLogsTable() {
 
   const fetchCallLogs = async () => {
     try {
-      const token = sessionStorage.getItem("token")
+      const token = sessionStorage.getItem("token");
       if (!token) throw new Error("User not authenticated.");
       const res = await fetchWithAuth(`https://3.95.238.222/api/call-logs/list`, {
         headers: {
@@ -44,12 +45,12 @@ export default function CallLogsTable() {
 
       const data = await res.json();
       const logs = Array.isArray(data) ? data : data.data || data.callLogs || [];
-      console.log("✅ Logs fetched:", logs);
-
+      // toast.success("Call logs fetched successfully!"); // ✅
       setCallLogs(logs);
       setFilteredLogs(logs);
     } catch (err) {
       console.error("❌ Fetch error:", err.message);
+      toast.error("Failed to fetch call logs."); // ✅
     }
   };
 
@@ -62,7 +63,9 @@ export default function CallLogsTable() {
       Object.values(log).some((val) => String(val).toLowerCase().includes(search.toLowerCase()))
     );
     if (statusFilter !== "All") {
-      filtered = filtered.filter((log) => log.status === statusFilter);
+      filtered = filtered.filter((log) =>
+        (log.status === statusFilter || (statusFilter === "Not Picked" && log.status === "Ring"))
+      );
     }
     setFilteredLogs(filtered);
   }, [search, statusFilter, callLogs]);
@@ -78,7 +81,9 @@ export default function CallLogsTable() {
         },
         body: JSON.stringify(formData),
       });
+
       if (res.ok) {
+        toast.success("Call log created successfully!"); // ✅
         setShowCreateForm(false);
         setFormData({
           status: "",
@@ -89,8 +94,12 @@ export default function CallLogsTable() {
           call_recording: "",
         });
         fetchCallLogs();
+      } else {
+        const err = await res.json();
+        toast.error(err.message || "Failed to create call log."); // ✅
       }
     } catch (err) {
+      toast.error("Failed to create call log."); // ✅
       console.error("Create error:", err);
     }
   };
@@ -107,25 +116,31 @@ export default function CallLogsTable() {
         body: form,
       });
       if (res.ok) {
+        toast.success("Recording uploaded successfully!"); // ✅
         setShowUpload(false);
         setUploadId("");
         setUploadFile(null);
         fetchCallLogs();
+      } else {
+        toast.error("Failed to upload recording."); // ✅
       }
     } catch (err) {
+      toast.error("Upload error. Please try again."); // ✅
       console.error("Upload error:", err);
     }
   };
 
   const handleDownloadByUrl = async (url, id) => {
     try {
-      const res = await fetch(`https://3.95.238.222/api/call-logs/download-recording/${id}`,{
+      const res = await fetch(`https://3.95.238.222/api/call-logs/download-recording/${id}`, {
         headers: {
           "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
           "Content-Type": "application/json",
-        },      });
-      console.log("Download response:", res);
+        },
+      });
+
       if (!res.ok) throw new Error("Failed to download recording.");
+
       const blob = await res.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -133,14 +148,32 @@ export default function CallLogsTable() {
       a.download = `call_recording_${id}.mp3`;
       a.click();
       a.remove();
+
+      toast.success("Recording downloaded successfully!"); // ✅
     } catch (err) {
+      toast.error("Download failed. Please try again."); // ✅
       console.error("Recording download failed:", err);
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case "Connected":
+        return <span className="text-green-500 font-semibold">✅ Connected</span>;
+      case "Missed":
+        return <span className="text-red-500 font-semibold">❌ Missed</span>;
+      case "Pending":
+        return <span className="text-yellow-500 font-semibold">🕒 Pending</span>;
+      case "Ring":
+        return <span className="text-gray-400 font-semibold">⚠️ Not Picked</span>;
+      default:
+        return status;
     }
   };
 
   return (
     <div className="p-4 min-h-screen bg-white text-black dark:bg-[#0f172a] dark:text-white transition-all duration-300">
-    {/* Search & Filter Bar */}
+      {/* Search & Filter Bar */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
         <div className="flex gap-2 w-full md:w-auto">
           <input
@@ -159,15 +192,14 @@ export default function CallLogsTable() {
             <option value="Connected">Connected</option>
             <option value="Missed">Missed</option>
             <option value="Pending">Pending</option>
+            <option value="Not Picked">Not Picked</option>
           </select>
         </div>
       </div>
 
-     
-      {/* Table View (for Desktop Only) */}
+      {/* Table View (for Desktop) */}
       <div className="overflow-x-auto shadow rounded-xl border dark:border-gray-700 border-gray-200 hidden md:block">
-        
-      <table className="min-w-full text-sm text-left">
+        <table className="min-w-full text-sm text-left">
           <thead className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100">
             <tr>
               <th className="p-2">Name</th>
@@ -188,27 +220,33 @@ export default function CallLogsTable() {
               >
                 <td className="p-2">{`${log.person.first_name} ${log.person.last_name}`}</td>
                 <td className="p-2">{log.person.phone_number}</td>
-                <td className="p-2">{log.status}</td>
+                <td className="p-2">{getStatusLabel(log.status)}</td>
                 <td className="p-2">{log.call_date}</td>
                 <td className="p-2">{log.campaign}</td>
                 <td className="p-2">{log.start_time}</td>
-                <td className="p-2">{log.end_time}</td>
                 <td className="p-2">
-                  <button
-                    onClick={() => handleDownloadByUrl(log.call_recording, log.id)}
-                    className="text-blue-600 hover:text-blue-800"
-                    title="Download recording"
-                  >
-                    <FaDownload />
-                  </button>
+                  {log.end_time ? log.end_time : <span className="text-gray-400 italic">⏰ No end time</span>}
+                </td>
+                <td className="p-2">
+                  {log.call_recording && log.call_recording !== "null" ? (
+                    <button
+                      onClick={() => handleDownloadByUrl(log.call_recording, log.id)}
+                      className="text-blue-600 hover:text-blue-800"
+                      title="Download recording"
+                    >
+                      <FaDownload />
+                    </button>
+                  ) : (
+                    <span className="text-gray-400 italic">🎧 No recording</span>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      
-      {/* Mobile View - Card Format */}
+
+      {/* Mobile View */}
       <div className="md:hidden space-y-4">
         {filteredLogs.map((log, index) => (
           <div
@@ -217,28 +255,32 @@ export default function CallLogsTable() {
           >
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-lg font-bold text-purple-700 dark:text-purple-400">Call #{log.id}</h3>
-              <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-700">
-                {log.status}
-              </span>
+              {getStatusLabel(log.status)}
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm text-gray-800 dark:text-gray-200">
               <div><strong>Name:</strong> {`${log.person.first_name} ${log.person.last_name}`}</div>
               <div><strong>Phone:</strong> {log.person.phone_number}</div>
-              <div><strong>Status:</strong> {log.status}</div>
               <div><strong>Campaign:</strong> {log.campaign}</div>
               <div><strong>Call Date:</strong> {log.call_date}</div>
               <div><strong>Start Time:</strong> {log.start_time}</div>
-              <div><strong>End Time:</strong> {log.end_time}</div>
+              <div>
+                <strong>End Time:</strong>{" "}
+                {log.end_time ? log.end_time : <span className="text-gray-400 italic">⏰ No end time</span>}
+              </div>
             </div>
             <div className="mt-3 text-sm">
               <strong>Recording:</strong>{" "}
-              <button
-                onClick={() => handleDownloadByUrl(log.call_recording, log.id)}
-                className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
-              >
-                <FaDownload />
-                <span className="text-sm">Download</span>
-              </button>
+              {log.call_recording && log.call_recording !== "null" ? (
+                <button
+                  onClick={() => handleDownloadByUrl(log.call_recording, log.id)}
+                  className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
+                >
+                  <FaDownload />
+                  <span className="text-sm">Download</span>
+                </button>
+              ) : (
+                <span className="text-gray-400 italic">🎧 No recording</span>
+              )}
             </div>
           </div>
         ))}

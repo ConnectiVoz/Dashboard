@@ -7,6 +7,8 @@ import CircleProgress from "./CircleProgress";
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { motion } from "framer-motion";
 import { NavLink, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify"; // ✅ Fixed: added toast import
+import "react-toastify/dist/ReactToastify.css";
 
 const Dashboard = () => {
   const [data, setData] = useState(null);
@@ -28,17 +30,18 @@ const Dashboard = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-      console.log("📊 Dashboard fetch response:", response);
 
       const text = await response.text();
       const json = JSON.parse(text);
       setData(json);
       setError(null);
+      // toast.success("Dashboard data fetched successfully!");
     } catch (err) {
       console.error("❌ Dashboard fetch error:", err.message);
+      toast.error("Failed to fetch dashboard data.");
       setError("Something went wrong while loading dashboard data.");
       setData(null);
     } finally {
@@ -51,74 +54,81 @@ const Dashboard = () => {
     if (!token) return;
 
     try {
-      const res = await fetch("", {
+      const res = await fetch("https://3.95.238.222/api/user/amount-spent/", { // ✅ Replace with actual endpoint
         headers: {
-          "Authorization": `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
+
       if (res.ok) {
         const result = await res.json();
         setAmountSpent(result.amount);
+      } else {
+        toast.error("Failed to fetch amount spent.");
       }
     } catch (err) {
-      console.error("Failed to fetch amount spent:", err);
+      console.error("❌ Amount fetch error:", err);
+      toast.error("Network error while fetching amount spent.");
     }
   };
 
   const fetchAgents = async () => {
     const token = sessionStorage.getItem("token");
     if (!token) return;
+
     try {
       const res = await fetch("https://3.95.238.222/api/bots/list", {
         headers: {
-          "Authorization": `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       const result = await res.json();
-         if (Array.isArray(result)) {
-      setAgents(result); // Direct array
-    } else if (result.bots) {
-      setAgents(result.bots); // Wrapped in 'bots'
-    } else {
-      setAgents([]); // Fallback
+
+      if (Array.isArray(result)) {
+        setAgents(result);
+      } else if (result.bots) {
+        setAgents(result.bots);
+      } else {
+        setAgents([]);
+      }
+    } catch (err) {
+      console.error("❌ Agents fetch error:", err);
+      toast.error("Failed to fetch agents.");
     }
-  } catch (err) {
-    console.error("❌ Fetch Agents Error:", err);
-  }
-};
+  };
+
+  const fetchUserProfile = async () => {
+    const token = sessionStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const res = await fetch("https://3.95.238.222/api/user/user-profile/", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUserData({ first_name: data.first_name || "User" });
+      } else {
+        toast.error("Failed to load user profile.");
+      }
+    } catch (err) {
+      console.error("❌ Profile fetch error:", err);
+      toast.error("Error fetching user profile.");
+    }
+  };
 
   useEffect(() => {
     fetchData();
     fetchAgents();
     fetchAmountSpent();
-  }, []);
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      const token = sessionStorage.getItem("token");
-      if (!token) return;
-
-      try {
-        const res = await fetch("https://3.95.238.222/api/user/user-profile/", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          setUserData({ first_name: data.first_name || "User" });
-        }
-      } catch (err) {
-        console.error("Failed to fetch user profile:", err);
-      }
-    };
-
     fetchUserProfile();
-  }, [navigate]);
+  }, []);
 
   const handleCalendarChange = (e) => {
     const selected = e.target.value;
@@ -159,10 +169,10 @@ const Dashboard = () => {
 
         <div onClick={handleAmountCardClick}>
           <StatCard icon={<FaWallet />} label="Amount Spent" value={`₹${amountSpent || 0}`}>
-            <div className="mt-2">
+            <div className="-mt-14 ml-48">
               <input
                 type="date"
-                className="text-xs p-1 rounded bg-white dark:bg-gray-700 dark:text-white cursor-pointer"
+                className="text-xs p-0 rounded bg-white dark:bg-gray-700 dark:text-white cursor-pointer"
                 onChange={handleCalendarChange}
               />
             </div>
@@ -179,111 +189,75 @@ const Dashboard = () => {
           <StatCard icon={<BsFillTelephonePlusFill />} label="Calls Today" value={data?.callsToday || 0} />
         </NavLink>
         <NavLink to="/campaign">
-          <StatCard icon={<SiGoogleanalytics />} label="Campaigns" value={data?.campaigns?.filter(c => c.status === "running").length || 0}/>
+          <StatCard
+            icon={<SiGoogleanalytics />}
+            label="Campaigns"
+            value={data?.campaigns?.filter(c => c.status === "running").length || 0}
+          />
         </NavLink>
       </div>
-{/* 
-      <div className="mt-8 flex justify-center sm:justify-start px-2 sm:px-0">
-<CircleProgress percentage={data?.campaignSuccessRate || 0} label="Campaign Success" size={80} />
-      </div> */}
 
       {/* === Analytics Section === */}
       <div className="mt-12">
         <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white mb-4">Analytics</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="flex items-center gap-4 bg-white dark:bg-white/10 p-4 rounded-xl shadow">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-400/20 rounded-full flex items-center justify-center text-blue-600 text-xl">📱</div>
-            <div>
-              {/* <p className="text-sm text-gray-500 dark:text-gray-300">Total Campaign</p> */}
-                 <td className="px-4 py-2">
-                      <NavLink to="/campaign" className="text-blue-500 hover:underline">
-                       <p className="text-sm text-gray-500 dark:text-gray-300">Total Campaign</p>
-                      </NavLink>
-                       </td>
-
-              <p className="text-lg font-bold text-gray-800 dark:text-white">{data?.campaigns?.length || 0}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 bg-white dark:bg-white/10 p-4 rounded-xl shadow">
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-400/20 rounded-full flex items-center justify-center text-green-600 text-xl">✅</div>
-            <div>
-              {/* <p className="text-sm text-gray-500 dark:text-gray-300">Running Campaign</p> */}
-              <td className="px-4 py-2">
-               <NavLink to="/campaign" className="text-blue-500 hover:underline">
-              <p className="text-sm text-gray-500 dark:text-gray-300">Running Campaign</p>
-                </NavLink>
-                </td>
-
-              <p className="text-lg font-bold text-gray-800 dark:text-white">
-                {data?.campaigns?.filter(c => c.status === "running").length || 0}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 bg-white dark:bg-white/10 p-4 rounded-xl shadow">
-            <div className="w-10 h-10 bg-orange-100 dark:bg-orange-400/20 rounded-full flex items-center justify-center text-orange-600 text-xl">🤖</div>
-            <div>
-              <NavLink to="/manage/agents" className="text-sm text-gray-500 dark:text-gray-300">
-                <p className="text-sm text-gray-500 dark:text-gray-300">Total Agents</p>
-              </NavLink>
-              {/* <p className="text-sm text-gray-500 dark:text-gray-300">Total Agents</p> */}
-                           
-              
-              <p className="text-lg font-bold text-gray-800 dark:text-white">{agents.length || 0}
-                
-              </p>
-            </div>
-          </div>
+          {/* Campaign Count */}
+          <AnalyticsCard label="Total Campaign" value={data?.campaigns?.length || 0} link="/campaign" emoji="📱" />
+          {/* Running Campaigns */}
+          <AnalyticsCard
+            label="Running Campaign"
+            value={data?.campaigns?.filter(c => c.status === "running").length || 0}
+            link="/campaign"
+            emoji="✅"
+          />
+          {/* Total Agents */}
+          <AnalyticsCard label="Total Agents" value={agents.length} link="/manage/agents" emoji="🤖" />
         </div>
       </div>
 
       {/* === Agents Section === */}
-      {agents.length > 0 && (
-  <div className="mt-12">
-    <h2 className="text-lg sm:text-xl font-semibold text-white-800 dark:text-white mb-4">Your Agents</h2>
-    <div className="grid text-white sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {agents.slice(0, 3).map((agent, i) => {
-        const completed = agent.completed || Math.floor(Math.random() * 10) + 1;
-        const total = agent.total || 10;
-        const percentage = ((completed / total) * 100).toFixed(0);
-
-        return (
-          <div
-            key={agent.id || i}
-            className="p-4 rounded-xl bg-white dark:bg-white/10 shadow-md hover:shadow-xl transition-all duration-300"
-          >
-            <h3 className="font-bold text-sm text-gray-800 dark:text-white mb-1">
-              {agent.bot_name || "Agent"}
-            </h3>
-            <div className="w-full h-2 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden mb-1">
-              <div className="h-full bg-red-500 rounded-full" style={{ width: `${percentage}%` }} />
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {completed} / {total}
-            </p>
+      {agents.length > 0 ? (
+        <div className="mt-12">
+          <h2 className="text-lg sm:text-xl font-semibold text-white-800 dark:text-white mb-4">Your Agents</h2>
+          <div className="grid text-white sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {agents.slice(0, 3).map((agent, i) => {
+              const completed = agent.completed || Math.floor(Math.random() * 10) + 1;
+              const total = agent.total || 10;
+              const percentage = ((completed / total) * 100).toFixed(0);
+              return (
+                <div
+                  key={agent.id || i}
+                  className="p-4 rounded-xl bg-white dark:bg-white/10 shadow-md hover:shadow-xl transition-all duration-300"
+                >
+                  <h3 className="font-bold text-sm text-gray-800 dark:text-white mb-1">
+                    {agent.bot_name || "Agent"}
+                  </h3>
+                  <div className="w-full h-2 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden mb-1">
+                    <div className="h-full bg-red-500 rounded-full" style={{ width: `${percentage}%` }} />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {completed} / {total}
+                  </p>
+                </div>
+              );
+            })}
           </div>
-        );
-      })}
-    </div>
+          {agents.length > 3 && (
+            <div className="mt-4 text-center">
+              <NavLink
+                to="/manage/agents"
+                className="text-blue-600 dark:text-blue-400 text-sm underline hover:text-blue-800 dark:hover:text-blue-300"
+              >
+                More
+              </NavLink>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="mt-6 text-gray-500 dark:text-gray-400 text-center">No agents found.</div>
+      )}
 
-    {agents.length > 3 && (
-      <div className="mt-4 text-center">
-        <NavLink
-          to="/manage/agents"
-          className="text-blue-600 dark:text-blue-400 text-sm underline hover:text-blue-800 dark:hover:text-blue-300"
-        >
-          More
-        </NavLink>
-      </div>
-    )}
-  </div>
-)}
-{agents.length === 0 && !loading && (
-  <div className="mt-6 text-gray-500 dark:text-gray-400 text-center">
-    No agents found.
-  </div>
-)}
+      {/* === Recent Activities === */}
       <div className="mt-12">
         <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white mb-4">Recent Activities</h2>
         <div className="bg-white dark:bg-white/10 p-4 rounded-xl shadow-md">
@@ -300,7 +274,7 @@ const Dashboard = () => {
       </div>
     </div>
   );
-} 
+};
 
 const StatCard = ({ icon, label, value, children }) => (
   <motion.div
@@ -318,6 +292,20 @@ const StatCard = ({ icon, label, value, children }) => (
     </div>
     {children && <div>{children}</div>}
   </motion.div>
+);
+
+const AnalyticsCard = ({ label, value, link, emoji }) => (
+  <div className="flex items-center gap-4 bg-white dark:bg-white/10 p-4 rounded-xl shadow">
+    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-400/20 rounded-full flex items-center justify-center text-blue-600 text-xl">
+      {emoji}
+    </div>
+    <div>
+      <NavLink to={link} className="text-sm text-gray-500 dark:text-gray-300 hover:underline">
+        <p>{label}</p>
+      </NavLink>
+      <p className="text-lg font-bold text-gray-800 dark:text-white">{value}</p>
+    </div>
+  </div>
 );
 
 export default Dashboard;

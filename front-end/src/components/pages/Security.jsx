@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { toast } from "react-toastify"; // ✅ Make sure toast is imported
 
 function Security() {
   const [pin, setPin] = useState("");
@@ -9,11 +10,13 @@ function Security() {
     e.preventDefault();
 
     if (pin.length !== 6 || isNaN(pin)) {
-      return alert("Enter a valid 6-digit PIN.");
+      toast.error("Enter a valid 6-digit PIN.");
+      return;
     }
 
     if (pin !== confirmPin) {
-      return alert("PINs do not match.");
+      toast.error("PINs do not match.");
+      return;
     }
 
     try {
@@ -31,13 +34,13 @@ function Security() {
 
       const data = await response.json();
       if (response.ok) {
-        alert("✅ 2FA Enabled Successfully!");
+        toast.success("✅ 2FA Enabled Successfully!");
       } else {
-        alert(`❌ Failed: ${data?.message || "Something went wrong"}`);
+        toast.error(`❌ Failed: ${data?.message || "Something went wrong"}`);
       }
     } catch (err) {
       console.error(err);
-      alert("⚠️ Error enabling 2FA.");
+      toast.error("⚠️ Error enabling 2FA.");
     }
   };
 
@@ -87,4 +90,3 @@ function Security() {
 }
 
 export default Security;
-

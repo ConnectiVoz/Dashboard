@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { toast } from "react-toastify";
 
 function Password() {
   const [formData, setFormData] = useState({
@@ -21,24 +22,25 @@ function Password() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
         },
         body: JSON.stringify({
           old_password: formData.oldPassword,
           new_password: formData.newPassword,
         }),
       });
+
       console.log("🔁 Sending password update request:", response);
       const data = await response.json();
 
       if (response.ok) {
-        alert(`✅ ${data.message || "Password updated successfully!"}`);
+        toast.success(`✅ ${data.message || "Password updated successfully!"}`);
       } else {
-        alert(`❌ ${data?.message || "Something went wrong"}`);
+        toast.error(`❌ ${data?.message || "Something went wrong"}`);
       }
     } catch (err) {
       console.error(err);
-      alert("⚠️ Error updating password.");
+      toast.error("⚠️ Error updating password.");
     }
   };
 

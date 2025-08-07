@@ -1,102 +1,90 @@
-import React, { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const ResetPassword = () => {
-  const [searchParams] = useSearchParams();
+  const { uid, token } = useParams();
   const navigate = useNavigate();
-
-  const [token, setToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  useEffect(() => {
-    const tokenFromURL = searchParams.get("token");
-    console.log("Token from URL:", tokenFromURL);
-    if (!tokenFromURL) {
-      setMessage("No token provided in URL.");
-      return;
-    }
-    if (tokenFromURL) setToken(tokenFromURL);
-  }, [searchParams]);
- const backendURL = "https://3.95.238.222";
-  const handleReset = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!token || !newPassword) {
-      setMessage("Token and password are required.");
+    if (!newPassword || !confirmPassword) {
+      toast.error("Please fill in both fields.");
       return;
     }
-      // const token = sessionStorage.getItem("token");
-    try {
-      const res = await fetch(`https://3.95.238.222/api/user/reset-password/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json",
-          // "Authorization": `Bearer ${token}`,
-         },
-        body: JSON.stringify({
-          token:token,
-          new_password: newPassword,
-        }),
-      });
-      console.log("Response status:", res.status); // Log the response status
-      console.log("Response URL:", res.url); // Log the response URL
-      console.log("Request body:", JSON.stringify({
-        token,
-        new_password: newPassword,
-      })); // Log the request body
-      console.log("Request headers:", {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      }); // Log the request headers
-      console.log("Token from URL:", tokenFromURL);
 
-      if (res.ok) {
-        setMessage("Password reset successful!");
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+
+    try {
+      const response = await fetch("https://3.95.238.222/api/user/reset-password/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid, token, new_password: newPassword }),
+      });
+
+      if (response.ok) {
+        toast.success("Password reset successful!");
         setTimeout(() => navigate("/login"), 2000);
       } else {
-        const data = await res.json();
-        setMessage(data.message || "Something went wrong.");
+        const err = await response.json();
+        toast.error(err.message || "Password reset failed.");
       }
-    } catch {
-      setMessage("Server error.");
+    } catch (error) {
+      console.error("❌ Reset error:", error);
+      toast.error("Something went wrong. Please try again.");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <div className="bg-white text-black p-6 rounded-xl shadow-xl w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4">Reset Your Password</h2>
-        <form onSubmit={handleReset} className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-[#121212] px-4">
+      <div className="bg-white dark:bg-white/10 p-8 rounded-xl shadow-lg max-w-md w-full">
+        <h2 className="text-2xl font-bold mb-4 text-center text-gray-800 dark:text-white">
+          Reset Your Password
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block mb-1">Reset Token</label>
-            <input
-              type="text"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded"
-              placeholder="Enter token from email"
-            />
-          </div>
-          <div>
-            <label className="block mb-1">New Password</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+              New Password
+            </label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 
+                         focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white"
               placeholder="Enter new password"
             />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 
+                         focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white"
+              placeholder="Confirm new password"
+            />
+          </div>
+
           <button
             type="submit"
-            className="w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 
+                       font-semibold transition-all duration-300"
           >
             Reset Password
           </button>
         </form>
-        {message && (
-          <p className="mt-4 text-center text-sm text-green-600">{message}</p>
-        )}
       </div>
     </div>
   );

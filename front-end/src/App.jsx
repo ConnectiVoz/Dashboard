@@ -8,6 +8,9 @@ import {
   useNavigationType,
 } from "react-router-dom";
 
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 import Navbar from "./components/Compo/Navbar";
 import Dashboard from "./components/pages/dashboard";
 import CallLogsTable from "./components/pages/CallLogsTable";
@@ -20,6 +23,7 @@ import Signup from "./components/Compo/signup";
 import ErrorPage from "./components/Errorpage";
 import ResetPassword from "./components/Compo/ResetPassword";
 import ManageAgents from "./components/pages/ManageAgents";
+import CallList from "./components/pages/CallList";
 
 const App = () => {
   const location = useLocation();
@@ -37,7 +41,6 @@ const App = () => {
     root.classList.add(darkMode ? "dark" : "light");
   }, [darkMode]);
 
-  // 🚫 Manual navigation protection
   useEffect(() => {
     const publicPaths = ["/login", "/signup", "/reset-password"];
     const isPublic = publicPaths.includes(location.pathname.toLowerCase());
@@ -70,6 +73,18 @@ const App = () => {
     <div className={`${darkMode ? "bg-gray-900 text-white" : "bg-gray-100 text-black"} min-h-screen`}>
       {!hideNavbar && <Navbar toggleTheme={toggleTheme} darkMode={darkMode} />}
       <div className="p-5">
+        {/* ✅ Global Toast Container */}
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          pauseOnHover
+          draggable
+          theme="dark"
+        />
+
         <Routes>
           {/* 🔓 Public Routes */}
           <Route
@@ -131,13 +146,22 @@ const App = () => {
             }
           />
           <Route
+            path="/Call List"
+            element={
+              <PrivateRoute>
+                <CallList />
+              </PrivateRoute>
+            }
+          />
+          {/* <Route
             path="/reports/*"
             element={
               <PrivateRoute>
                 <Reports />
               </PrivateRoute>
             }
-          />
+          /> */}
+
           <Route
             path="/manage/*"
             element={

@@ -1,21 +1,17 @@
 import React, { useState } from "react";
 import { FaGoogle, FaFacebookF, FaGithub } from "react-icons/fa";
+import { toast } from "react-toastify";
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [data, setData] = useState({
-    first_name: "",
-    phone_number: "",
-  });
-  // const [token, setToken] = useState(sessionStorage.getItem("token")
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetMsg, setResetMsg] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  const backendURL = "https://3.95.238.222";
+  const backendURL = "https://3.95.238.222"; // ⚠️ Use http, not https if SSL is not configured
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -25,26 +21,46 @@ export default function Login({ onLogin }) {
       const response = await fetch(`${backendURL}/api/user/login/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }), // ✅ Only email & password
+        body: JSON.stringify({ email, password }),
       });
-        sessionStorage.setItem("user", JSON.stringify({
-        first_name: data.first_name,  
-        phone_number: data.phone_number       
-      }));
+
       if (response.ok) {
-        const data = await response.json();
-        alert("Login successful!");
+        const text = await response.text();
+        let data;
+
+        try {
+          data = JSON.parse(text);
+        } catch (err) {
+          console.error("❌ JSON parsing failed:", err);
+          setLoginError("Invalid server response. Please contact support.");
+          toast.error("Invalid server response.");
+          return;
+        }
+
+        console.log("✅ Login success:", data);
+
+        // Save token and user info
         sessionStorage.setItem("token", data.token || "dummy_token");
-        console.log("Token received:", data.token);
-        // Redirect to dashboard or perform any other action
-        window.location.href = "/dashboard"; // Redirect to dashboard
+        sessionStorage.setItem(
+          "user",
+          JSON.stringify({
+            email: data.email || "",
+            phone_number: data.phone_number || "",
+          })
+        );
+
+        toast.success("Login successful!");
+        window.location.href = "/dashboard";
         if (onLogin) onLogin();
       } else {
         const err = await response.json();
         setLoginError(err.message || "Invalid credentials.");
+        toast.error(err.message || "Invalid credentials.");
       }
     } catch (error) {
+      console.error("❌ Network error:", error);
       setLoginError("Network error. Please try again.");
+      toast.error("Network error. Please try again.");
     }
   };
 
@@ -56,20 +72,20 @@ export default function Login({ onLogin }) {
       return;
     }
 
-    const url = `${backendURL}/api/user/forgot-password/?email=${encodeURIComponent(resetEmail)}`;
-    console.log("🔁 Sending forgot password GET request to:", url);
+    const url = `${backendURL}/api/user/forgot-password/?email=${encodeURIComponent(
+      resetEmail
+    )}`;
 
     try {
       const res = await fetch(url, {
         method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
+        headers: { Accept: "application/json" },
       });
 
       const contentType = res.headers.get("content-type");
 
       if (res.ok && contentType?.includes("application/json")) {
+        toast.success("Reset link sent to your email!");
         const data = await res.json();
         console.log("✅ Forgot password success:", data);
         setResetMsg("Reset link sent to your email!");
