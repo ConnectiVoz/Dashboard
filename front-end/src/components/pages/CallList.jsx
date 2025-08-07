@@ -17,8 +17,9 @@ export default function CallList() {
     try {
       const res = await fetchWithAuth("https://3.95.238.222/api/call_list/files");
       const data = await res.json();
-      if (Array.isArray(data?.data)) {
-        setFileData(data.data);
+      console.log("Fetched files:", data);
+      if (Array.isArray(data?.files)) {
+        setFileData(data.files);
       }
     } catch (err) {
       console.error("Failed to fetch file list", err);
@@ -49,13 +50,31 @@ export default function CallList() {
     }
   };
 
-  const handleDownload = (filename) => {
-    const link = document.createElement("a");
-    link.href = `https://3.95.238.222/api/call_list/download/${filename}`;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = async (filename) => {
+    try {
+      const res = await fetchWithAuth(
+        `https://3.95.238.222/api/call_list/download/${encodeURIComponent(filename)}`,
+        { method: "GET" }
+      );
+
+      if (!res.ok) {
+        toast.error("❌ Download failed");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download failed", err);
+      toast.error("❌ Error downloading file");
+    }
   };
 
   const handleDelete = async (filename) => {
@@ -148,7 +167,8 @@ export default function CallList() {
               <th className="px-4 py-2 text-left">Select</th>
               <th className="px-4 py-2 text-left">Sr No.</th>
               <th className="px-4 py-2 text-left">File Name</th>
-              <th className="px-4 py-2 text-left">Actions</th>
+              <th className="px-4 py-2 text-left">Download</th>
+              <th className="px-4 py-2 text-left">Delete</th>
             </tr>
           </thead>
           <tbody>
@@ -159,11 +179,19 @@ export default function CallList() {
                 </td>
                 <td className="px-4 py-2">{idx + 1}</td>
                 <td className="px-4 py-2">📄 {f}</td>
-                <td className="px-4 py-2 flex gap-2">
-                  <button onClick={() => handleDownload(f)} className="text-green-500 hover:text-green-700">
+                <td className="px-4 py-2">
+                  <button
+                    onClick={() => handleDownload(f)}
+                    className="text-green-500 hover:text-green-700"
+                  >
                     <FaDownload />
                   </button>
-                  <button onClick={() => handleDelete(f)} className="text-red-500 hover:text-red-700">
+                </td>
+                <td className="px-4 py-2">
+                  <button
+                    onClick={() => handleDelete(f)}
+                    className="text-red-500 hover:text-red-700"
+                  >
                     <FaTrash />
                   </button>
                 </td>
@@ -171,7 +199,7 @@ export default function CallList() {
             ))}
             {filteredFiles.length === 0 && (
               <tr>
-                <td colSpan="4" className="text-center py-4">No files found</td>
+                <td colSpan="5" className="text-center py-4">No files found</td>
               </tr>
             )}
           </tbody>

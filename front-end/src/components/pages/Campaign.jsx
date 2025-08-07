@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { FaSearch, FaUpload, FaDownload } from "react-icons/fa";
+import { FaSearch } from "react-icons/fa";
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
-import { toast } from "react-toastify"; 
+import { toast } from "react-toastify";
 
 export default function CampaignPage() {
   const [campaignName, setCampaignName] = useState("");
   const [selectedBotId, setSelectedBotId] = useState("");
   const [bots, setBots] = useState([]);
   const [creating, setCreating] = useState(false);
-  const [callLists, setCallLists] = useState([]);
   const [file_name, setFileName] = useState([]);
   const [selectedFileName, setSelectedFileName] = useState([]);
-  const [excelFile, setExcelFile] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
   const [search, setSearch] = useState("");
   const [filteredCampaigns, setFilteredCampaigns] = useState([]);
@@ -22,13 +20,10 @@ export default function CampaignPage() {
   useEffect(() => {
     fetchBots();
     fetchCampaigns();
+    fetchCallLists();
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
-
-  useEffect(() => {
-    if (campaigns.length > 0) fetchCallListsFromCampaigns();
-  }, [campaigns]);
 
   useEffect(() => {
     localStorage.setItem("runningCampaigns", JSON.stringify(runningCampaigns));
@@ -54,59 +49,40 @@ export default function CampaignPage() {
     }
   };
 
-  const fetchCallListsFromCampaigns = async () => {
-    const fileSet = new Set();
-    for (let c of campaigns) {
-      try {
-        const res = await fetchWithAuth(
-          `https://3.95.238.222/api/campaigns/list-people?campaign_id=${c.campaign_id}`
-        );
-        const data = await res.json();
-        (data?.data || []).forEach((p) => {
-          if (p.file_name) fileSet.add(p.file_name);
-        });
-      } catch (err) {
-        console.error("Error fetching list-people for campaign", c.campaign_id, err);
-        toast.error(`Error fetching call list for campaign ID ${c.campaign_id}`);
-      }
-    }
-    setCallLists([...fileSet]);
-    setFileName([...fileSet]);
-  };
+ const fetchCallLists = async () => {
+  try {
+    const res = await fetchWithAuth("https://3.95.238.222/api/call_list/files");
 
-  const handleFileUpload = async () => {
-    if (!excelFile) return;
-    const formData = new FormData();
-    formData.append("file", excelFile);
-    try {
-      const res = await fetchWithAuth("https://3.95.238.222/api/campaigns/upload-calllist", {
-        method: "POST",
-        body: formData,
-      });
-      if (res.ok) {
-        toast.success("✅ Call list uploaded successfully!");
-        setExcelFile(null);
-        fetchCampaigns();
-      } else {
-        toast.error("❌ Call list upload failed!");
-      }
-    } catch (err) {
-      console.error("Upload error", err);
-      toast.error("Upload error occurred!");
+    // Try parsing only if status is OK
+    if (!res.ok) {
+      throw new Error(`API error ${res.status}: ${res.statusText}`);
     }
-  };
+
+    const data = await res.json();
+
+   if (Array.isArray(data.files)) {
+  setFileName(data.files);
+} else {
+  console.error("Unexpected call list format", data);
+  toast.error("Invalid call list format received.");
+}
+
+} catch (err) {
+    console.error("Call lists fetch error", err);
+    toast.error("Failed to fetch call lists.");
+  }
+};
 
   const fetchCampaigns = async () => {
     try {
       const token = sessionStorage.getItem("token");
       const res = await fetch("https://3.95.238.222/api/campaigns/list", {
-        headers: { "Authorization": `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       const list = Array.isArray(data?.data) ? data.data : [];
       setCampaigns(list);
       setFilteredCampaigns(list);
-      // toast.success("Campaigns fetched successfully!");
     } catch (err) {
       console.error("Campaigns fetch error", err);
       toast.error("Failed to fetch campaigns.");
@@ -122,7 +98,7 @@ export default function CampaignPage() {
       call_list_file: selectedFileName,
     };
     try {
-      const res = await fetch("https://3.95.238.222/api/campaigns/create", {
+      const res = await fetch("https://3.95.238.222/api/campaigns/campaigns", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
@@ -156,7 +132,7 @@ export default function CampaignPage() {
       const res = await fetch(`https://3.95.238.222/api/campaigns/run-campaign/${campaignId}`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
         },
       });
       if (res.ok) {
@@ -180,7 +156,7 @@ export default function CampaignPage() {
       const res = await fetch(`https://3.95.238.222/api/campaigns/stop-campaign/${campaignId}`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
         },
       });
       if (res.ok) {
@@ -199,7 +175,7 @@ export default function CampaignPage() {
   const handleSearch = (e) => {
     const value = e.target.value.toLowerCase();
     setSearch(value);
-    setFilteredCampaigns(campaigns.filter(c => c.campaign_name?.toLowerCase().includes(value)));
+    setFilteredCampaigns(campaigns.filter((c) => c.campaign_name?.toLowerCase().includes(value)));
   };
 
   return (
@@ -214,7 +190,9 @@ export default function CampaignPage() {
             disabled
           >
             {bots.map((bot) => (
-              <option key={bot.id} value={bot.id}>{bot.bot_name}</option>
+              <option key={bot.id} value={bot.id}>
+                {bot.bot_name}
+              </option>
             ))}
           </select>
 
@@ -226,38 +204,21 @@ export default function CampaignPage() {
             onChange={(e) => setCampaignName(e.target.value)}
           />
 
-          {campaigns.length > 0 ? (
-            <select
-              multiple
-              className="w-full p-2 mb-4 rounded bg-white/20 text-black dark:text-white h-40"
-              value={selectedFileName}
-              onChange={(e) => {
-                const selected = Array.from(e.target.selectedOptions).map(opt => opt.value);
-                setSelectedFileName(selected);
-              }}
-            >
-              {file_name.map((file, i) => (
-                <option key={i} value={file}>{file}</option>
-              ))}
-            </select>
-          ) : (
-            <div className="mb-4">
-              <input type="file" onChange={(e) => setExcelFile(e.target.files[0])} className="text-sm" />
-              <button
-                onClick={handleFileUpload}
-                className="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
-              >
-                <FaUpload className="inline-block mr-1" /> Upload Now
-              </button>
-              <a
-                href="/sample_call_list.xlsx"
-                download
-                className="ml-4 text-sm text-blue-400 hover:underline"
-              >
-                📎 Download Sample File
-              </a>
-            </div>
-          )}
+          <select
+            multiple
+            className="w-full p-2 mb-4 rounded bg-white/20 text-black dark:text-white h-40"
+            value={selectedFileName}
+            onChange={(e) => {
+              const selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+              setSelectedFileName(selected);
+            }}
+          >
+            {file_name.map((file, i) => (
+              <option key={i} value={file}>
+                {file}
+              </option>
+            ))}
+          </select>
 
           <button
             onClick={handleCreate}
@@ -271,11 +232,15 @@ export default function CampaignPage() {
             {creating ? "Creating..." : "Create Campaign"}
           </button>
 
-          <p className="mt-3 text-xs text-gray-400">📅 Date & time will be auto-filled with the current system time.</p>
+          <p className="mt-3 text-xs text-gray-400">
+            📅 Date & time will be auto-filled with the current system time.
+          </p>
         </div>
 
         <div className="flex items-center -ml-96 bg-white/10 rounded-lg overflow-hidden shadow">
-          <div className="px-3 text-white"><FaSearch /></div>
+          <div className="px-3 text-white">
+            <FaSearch />
+          </div>
           <input
             type="text"
             value={search}
@@ -302,7 +267,9 @@ export default function CampaignPage() {
               <tr key={c.campaign_id} className="hover:bg-white/10">
                 <td className="px-4 py-3">{index + 1}</td>
                 <td className="px-6 py-3">{c.campaign_name}</td>
-                <td className="px-6 py-3">{new Date(c.campaign_scheduled_datetime).toLocaleString()}</td>
+                <td className="px-6 py-3">
+                  {new Date(c.campaign_scheduled_datetime).toLocaleString()}
+                </td>
                 <td className="px-6 py-3">{c.campaign_status || "Active"}</td>
                 <td className="px-6 py-3 text-center">
                   {runningCampaigns.includes(c.campaign_id) ? (
@@ -325,7 +292,9 @@ export default function CampaignPage() {
             ))}
             {filteredCampaigns.length === 0 && (
               <tr>
-                <td colSpan="5" className="text-center py-6">No campaigns found</td>
+                <td colSpan="5" className="text-center py-6">
+                  No campaigns found
+                </td>
               </tr>
             )}
           </tbody>
