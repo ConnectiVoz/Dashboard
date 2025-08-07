@@ -13,7 +13,7 @@ function Reports() {
           <span className="bg-gradient-to-tr from-[#6366f1] to-[#a18cd1] text-white px-3 py-1.5 rounded-full font-bold shadow text-base tracking-wide drop-shadow">
             iVoz
           </span>
-          <span className="text-gray-700 font-semibold text-base">Vanshika</span>
+          <span className="text-gray-700 font-semibold text-base"></span>
         </div>
       </nav>
 
