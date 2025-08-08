@@ -83,7 +83,7 @@ const Navbar = ({ toggleTheme, darkMode }) => {
           isMenuOpen ? "flex" : "hidden"
         }`}
       >
-        {["/dashboard", "/call-logs", "/campaign", "/Call List", "/manage"].map((route) => {
+        {["/dashboard", "/call-logs", "/campaign", "/Call Sheet", "/manage"].map((route) => {
           const label = route.split("/")[1].replace("-", " ").replace("", "");
           return (
             <NavLink

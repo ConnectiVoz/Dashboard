@@ -7,7 +7,7 @@ import CircleProgress from "./CircleProgress";
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { motion } from "framer-motion";
 import { NavLink, useNavigate } from "react-router-dom";
-import { toast } from "react-toastify"; // ✅ Fixed: added toast import
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const Dashboard = () => {
@@ -18,6 +18,10 @@ const Dashboard = () => {
   const [amountSpent, setAmountSpent] = useState(0);
   const [selectedDate, setSelectedDate] = useState("");
   const [agents, setAgents] = useState([]);
+  const [callsToday, setCallsToday] = useState(0);
+  const [pendingCalls, setPendingCalls] = useState(0);
+  const [totalCalls, setTotalCalls] = useState(0);
+  const [totalCampaignsCount, setTotalCampaignsCount] = useState(0);
   const navigate = useNavigate();
 
   const fetchData = async () => {
@@ -25,7 +29,6 @@ const Dashboard = () => {
     try {
       const token = sessionStorage.getItem("token");
       if (!token) throw new Error("User not authenticated.");
-
       const response = await fetchWithAuth("https://3.95.238.222/api/homepage/homepage", {
         method: "POST",
         headers: {
@@ -38,7 +41,6 @@ const Dashboard = () => {
       const json = JSON.parse(text);
       setData(json);
       setError(null);
-      // toast.success("Dashboard data fetched successfully!");
     } catch (err) {
       console.error("❌ Dashboard fetch error:", err.message);
       toast.error("Failed to fetch dashboard data.");
@@ -54,7 +56,7 @@ const Dashboard = () => {
     if (!token) return;
 
     try {
-      const res = await fetch("https://3.95.238.222/api/user/amount-spent/", { // ✅ Replace with actual endpoint
+      const res = await fetch("https://3.95.238.222/api/user/amount-spent/", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -63,12 +65,9 @@ const Dashboard = () => {
       if (res.ok) {
         const result = await res.json();
         setAmountSpent(result.amount);
-      } else {
-        toast.error("Failed to fetch amount spent.");
       }
     } catch (err) {
-      console.error("❌ Amount fetch error:", err);
-      toast.error("Network error while fetching amount spent.");
+      // console.error("❌ Amount fetch error:", err);
     }
   };
 
@@ -123,11 +122,60 @@ const Dashboard = () => {
     }
   };
 
+  // 🆕 New: Fetch call logs to get callsToday, pendingCalls, totalCalls
+  const fetchCallLogsForStats = async () => {
+    try {
+      const token = sessionStorage.getItem("token");
+      if (!token) throw new Error("User not authenticated.");
+
+      const res = await fetch("https://3.95.238.222/api/call-logs/list", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch call logs");
+
+      const data = await res.json();
+      const logs = Array.isArray(data) ? data : data.data || [];
+
+      const today = new Date().toISOString().slice(0, 10);
+
+      setTotalCalls(logs.length);
+      setCallsToday(logs.filter(log => log.call_date && log.call_date.startsWith(today)).length);
+      setPendingCalls(logs.filter(log => log.status === "Pending").length);
+    } catch (err) {
+      console.error("Error fetching call logs for stats:", err);
+    }
+  };
+
+  const fetchCampaignsCount = async () => {
+    try {
+      const token = sessionStorage.getItem("token");
+      if (!token) return;
+
+      const res = await fetch("https://3.95.238.222/api/campaigns/list", {
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error("Failed to fetch campaigns");
+
+      const data = await res.json();
+      const list = Array.isArray(data?.data) ? data.data : [];
+      setTotalCampaignsCount(list.length);
+    } catch (err) {
+      console.error("Error fetching campaigns count:", err);
+    }
+  };
+
   useEffect(() => {
     fetchData();
     fetchAgents();
     fetchAmountSpent();
     fetchUserProfile();
+    fetchCallLogsForStats();
+    fetchCampaignsCount();
   }, []);
 
   const handleCalendarChange = (e) => {
@@ -138,36 +186,52 @@ const Dashboard = () => {
     }
   };
 
-  const handleAmountCardClick = () => {
-    const today = new Date().toISOString().split("T")[0];
-    navigate(`/reports/calling?date=${today}`);
+  const handleBlockedClick = (e) => {
+    e.preventDefault();
+    toast.info("🚫 This page is currently unavailable.");
   };
 
   if (loading) {
     return (
       <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
-        {Array(6).fill().map((_, i) => (
-          <div key={i} className="bg-gray-200 dark:bg-white/10 rounded-2xl p-4 h-24 shadow-md"></div>
-        ))}
+        {Array(6)
+          .fill()
+          .map((_, i) => (
+            <div
+              key={i}
+              className="bg-gray-200 dark:bg-white/10 rounded-2xl p-4 h-24 shadow-md"
+            ></div>
+          ))}
       </div>
     );
   }
 
-  if (error) return <div className="p-4 text-center text-red-600 dark:text-red-400">{error}</div>;
+  if (error)
+    return (
+      <div className="p-4 text-center text-red-600 dark:text-red-400">{error}</div>
+    );
 
   return (
     <div className="p-4 bg-gray-100 dark:bg-[#121212] min-h-screen transition-colors duration-300">
-      <p className="text-sm text-gray-600 dark:text-gray-300">{new Date().toDateString()}</p>
+      <p className="text-sm text-gray-600 dark:text-gray-300">
+        {new Date().toDateString()}
+      </p>
       <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white mb-6">
         Welcome back, {userData?.first_name || "User"} 👋
       </h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        <NavLink to="/reports/calling">
-          <StatCard icon={<FaMoneyBillWave />} label="Account Balance" value={`₹${data?.accountBalance || 0}`} />
-        </NavLink>
+        {/* Account Balance - Disabled */}
+        <div onClick={handleBlockedClick}>
+          <StatCard
+            icon={<FaMoneyBillWave />}
+            label="Account Balance"
+            value={`₹${data?.accountBalance || 0}`}
+          />
+        </div>
 
-        <div onClick={handleAmountCardClick}>
+        {/* Amount Spent - Disabled */}
+        <div onClick={handleBlockedClick}>
           <StatCard icon={<FaWallet />} label="Amount Spent" value={`₹${amountSpent || 0}`}>
             <div className="-mt-14 ml-48">
               <input
@@ -180,37 +244,40 @@ const Dashboard = () => {
         </div>
 
         <NavLink to="/call-logs">
-          <StatCard icon={<FaChartPie />} label="Total Calls" value={data?.totalCalls || 0} />
+          <StatCard icon={<FaChartPie />} label="Total Calls" value={totalCalls} />
         </NavLink>
         <NavLink to="/call-logs">
-          <StatCard icon={<MdPendingActions />} label="Pending Calls" value={data?.pendingCalls || 0} />
+          <StatCard icon={<MdPendingActions />} label="Pending Calls" value={pendingCalls} />
         </NavLink>
         <NavLink to="/call-logs">
-          <StatCard icon={<BsFillTelephonePlusFill />} label="Calls Today" value={data?.callsToday || 0} />
+          <StatCard
+            icon={<BsFillTelephonePlusFill />}
+            label="Calls Today"
+            value={callsToday}
+          />
         </NavLink>
         <NavLink to="/campaign">
           <StatCard
             icon={<SiGoogleanalytics />}
-            label="Campaigns"
-            value={data?.campaigns?.filter(c => c.status === "running").length || 0}
+            label=" Running Campaigns"
+            value={data?.campaigns?.filter((c) => c.status === "running").length || 0}
           />
         </NavLink>
       </div>
 
       {/* === Analytics Section === */}
       <div className="mt-12">
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white mb-4">Analytics</h2>
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white mb-4">
+          Analytics
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Campaign Count */}
-          <AnalyticsCard label="Total Campaign" value={data?.campaigns?.length || 0} link="/campaign" emoji="📱" />
-          {/* Running Campaigns */}
+          <AnalyticsCard label="Total Campaign" value={totalCampaignsCount} link="/campaign" emoji="📊" />
           <AnalyticsCard
             label="Running Campaign"
-            value={data?.campaigns?.filter(c => c.status === "running").length || 0}
+            value={data?.campaigns?.filter((c) => c.status === "running").length || 0}
             link="/campaign"
             emoji="✅"
           />
-          {/* Total Agents */}
           <AnalyticsCard label="Total Agents" value={agents.length} link="/manage/agents" emoji="🤖" />
         </div>
       </div>
@@ -218,7 +285,9 @@ const Dashboard = () => {
       {/* === Agents Section === */}
       {agents.length > 0 ? (
         <div className="mt-12">
-          <h2 className="text-lg sm:text-xl font-semibold text-white-800 dark:text-white mb-4">Your Agents</h2>
+          <h2 className="text-lg sm:text-xl font-semibold text-white-800 dark:text-white mb-4">
+            Your Agents
+          </h2>
           <div className="grid text-white sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {agents.slice(0, 3).map((agent, i) => {
               const completed = agent.completed || Math.floor(Math.random() * 10) + 1;
@@ -259,7 +328,9 @@ const Dashboard = () => {
 
       {/* === Recent Activities === */}
       <div className="mt-12">
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white mb-4">Recent Activities</h2>
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white mb-4">
+          Recent Activities
+        </h2>
         <div className="bg-white dark:bg-white/10 p-4 rounded-xl shadow-md">
           {data?.recentActivities?.length > 0 ? (
             data.recentActivities.map((activity, index) => (

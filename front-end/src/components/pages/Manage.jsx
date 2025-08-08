@@ -38,7 +38,7 @@ function Manage() {
 
   const navLinks = [
     { to: "/manage/user", label: "User", icon: <FaUser /> },
-    { to: "/manage/security", label: "Security", icon: <FaShieldAlt /> },
+    // { to: "/manage/security", label: "Security", icon: <FaShieldAlt /> },
     { to: "/manage/password", label: "Password", icon: <FaLock /> },
     { to: "/manage/knowledgebase", label: "KB", icon: <FaBook /> },
     { to: "/manage/agents", label: "Agents", icon: <FaRobot /> },

@@ -12,6 +12,11 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+.Toastify__toast-container {
+  top: 70px; /* navbar height के हिसाब से adjust */
+  left: 50%;
+  transform: translateX(-50%);
+}
 
 a {
   font-weight: 500;

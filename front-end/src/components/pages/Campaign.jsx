@@ -32,7 +32,8 @@ export default function CampaignPage() {
   const handleBeforeUnload = (e) => {
     if (runningCampaigns.length > 0) {
       e.preventDefault();
-      e.returnValue = "Are you sure you want to leave? Your campaign will stop if you refresh.";
+      e.returnValue =
+        "Are you sure you want to leave? Your campaign will stop if you refresh.";
     }
   };
 
@@ -49,29 +50,23 @@ export default function CampaignPage() {
     }
   };
 
- const fetchCallLists = async () => {
-  try {
-    const res = await fetchWithAuth("https://3.95.238.222/api/call_list/files");
-
-    // Try parsing only if status is OK
-    if (!res.ok) {
-      throw new Error(`API error ${res.status}: ${res.statusText}`);
+  const fetchCallLists = async () => {
+    try {
+      const res = await fetchWithAuth(
+        "https://3.95.238.222/api/call_list/files"
+      );
+      if (!res.ok) throw new Error(`API error ${res.status}: ${res.statusText}`);
+      const data = await res.json();
+      if (Array.isArray(data.files)) setFileName(data.files);
+      else {
+        console.error("Unexpected call list format", data);
+        toast.error("Invalid call list format received.");
+      }
+    } catch (err) {
+      console.error("Call lists fetch error", err);
+      toast.error("Failed to fetch call lists.");
     }
-
-    const data = await res.json();
-
-   if (Array.isArray(data.files)) {
-  setFileName(data.files);
-} else {
-  console.error("Unexpected call list format", data);
-  toast.error("Invalid call list format received.");
-}
-
-} catch (err) {
-    console.error("Call lists fetch error", err);
-    toast.error("Failed to fetch call lists.");
-  }
-};
+  };
 
   const fetchCampaigns = async () => {
     try {
@@ -90,51 +85,195 @@ export default function CampaignPage() {
   };
 
   const handleCreate = async () => {
+    const isDuplicate = campaigns.some(
+      (c) => c.campaign_name?.toLowerCase() === campaignName.toLowerCase()
+    );
+    if (isDuplicate) {
+      toast.info(
+        <div>
+          <p>⚠ This campaign name already exists!</p>
+          <button
+            onClick={() => toast.dismiss()}
+            style={{
+              backgroundColor: "#3b82f6",
+              color: "white",
+              padding: "4px 12px",
+              borderRadius: "4px",
+              marginTop: "8px",
+              cursor: "pointer",
+            }}
+          >
+            OK
+          </button>
+        </div>,
+        { autoClose: false }
+      );
+      return;
+    }
+
     setCreating(true);
+    const token = sessionStorage.getItem("token");
+
+    function getISTDateTime(minutesToAdd = 0) {
+      const date = new Date(Date.now() + minutesToAdd * 60 * 1000);
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const istDate = new Date(date.getTime() + istOffset);
+      const year = istDate.getUTCFullYear();
+      const month = String(istDate.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(istDate.getUTCDate()).padStart(2, "0");
+      const hours = String(istDate.getUTCHours()).padStart(2, "0");
+      const minutes = String(istDate.getUTCMinutes()).padStart(2, "0");
+      const seconds = String(istDate.getUTCSeconds()).padStart(2, "0");
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
     const payload = {
       bot_id: selectedBotId,
-      name: campaignName,
-      scheduled_datetime: new Date().toISOString(),
       call_list_file: selectedFileName,
+      name: campaignName,
+      scheduled_datetime: getISTDateTime(10),
     };
+
     try {
-      const res = await fetch("https://3.95.238.222/api/campaigns/campaigns", {
+      const res = await fetch("https://3.95.238.222/api/campaigns/create", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
       });
 
-      if (res.status === 200) {
-        toast.success("✅ Campaign created successfully!");
+      const contentType = res.headers.get("Content-Type") || "";
+      let data;
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        console.log("Response text:", text);
+      }
+
+      if (res.ok) {
+        toast.success(data?.message || "✅ Campaign created successfully!");
+
+        if (data?.["duplicate data skipped"]) {
+          let duplicates = [];
+
+          try {
+            if (Array.isArray(data["duplicate data skipped"])) {
+              duplicates = data["duplicate data skipped"];
+            } else if (typeof data["duplicate data skipped"] === "string") {
+              // Try to parse string safely
+              const cleanStr = data["duplicate data skipped"]
+                .replace(/'/g, '"')
+                .replace(/None/g, "null");
+              duplicates = JSON.parse(cleanStr);
+            }
+          } catch (e) {
+            console.error(
+              "Error parsing 'duplicate data skipped':",
+              e,
+              data["duplicate data skipped"]
+            );
+            toast.error("⚠️ Could not parse duplicate data info.");
+          }
+
+          console.log("Parsed duplicates:", duplicates);
+
+          if (duplicates.length > 0) {
+            const phoneSet = new Set();
+            const uniqueDuplicates = duplicates.filter((d) => {
+              if (!d.phone_number) return false;
+              if (phoneSet.has(d.phone_number)) return false;
+              phoneSet.add(d.phone_number);
+              return true;
+            });
+
+            const duplicatesText = uniqueDuplicates
+              .map(
+                (d) =>
+                  `${d.first_name || ""} ${d.last_name || ""} (${d.phone_number})`
+              )
+              .join("\n");
+
+            toast.info(
+              <div>
+                <p>⚠ Duplicate data found (Phone Number Match):</p>
+                <pre
+                  className="whitespace-pre-wrap"
+                  style={{
+                    maxHeight: "600px",
+                    minHeight: "300px",
+                    maxWidth: "1000px",
+                    overflowY: "auto",
+                    overflowX: "auto",
+                    padding: "20px",
+                    backgroundColor: "#1e293b",
+                    borderRadius: "8px",
+                    fontSize: "16px",
+                    color: "white",
+                    lineHeight: "1.6",
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {duplicatesText}
+                </pre>
+                <button
+                  onClick={() => toast.dismiss()}
+                  style={{
+                    backgroundColor: "#3b82f6",
+                    color: "white",
+                    padding: "12px 24px",
+                    borderRadius: "6px",
+                    marginTop: "20px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    border: "none",
+                  }}
+                >
+                  OK
+                </button>
+              </div>,
+              { autoClose: false, closeOnClick: false }
+            );
+          } else {
+            console.log("No duplicates to show in toast.");
+          }
+        } else {
+          console.log("No 'duplicate data skipped' in response.");
+        }
+
+        // Reset form & refresh campaigns
         setCampaignName("");
         setSelectedFileName([]);
         fetchCampaigns();
       } else {
-        const error = await res.json();
-        toast.error(`❌ Failed to create campaign: ${error.message || "Server error"}`);
+        toast.error(`❌ Failed to create campaign: ${data?.message || res.statusText}`);
       }
     } catch (err) {
       console.error("Create error", err);
-      toast.error("❌ Error creating campaign!");
+      toast.error("❌ Network error while creating campaign!");
     } finally {
       setCreating(false);
     }
   };
 
   const handleStartCampaign = async (campaignId) => {
-    const confirmStart = window.confirm("Do you want to start this campaign? If you refresh, it may stop.");
+    const confirmStart = window.confirm(
+      "Do you want to start this campaign?."
+    );
     if (!confirmStart) return;
     setRunningCampaigns((prev) => [...prev, campaignId]);
     try {
-      const res = await fetch(`https://3.95.238.222/api/campaigns/run-campaign/${campaignId}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-        },
-      });
+      const res = await fetch(
+        `https://3.95.238.222/api/campaigns/run-campaign/${campaignId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          },
+        }
+      );
       if (res.ok) {
         toast.success("✅ Campaign started successfully!");
         fetchCampaigns();
@@ -153,12 +292,15 @@ export default function CampaignPage() {
     const confirmStop = window.confirm("Are you sure you want to stop this campaign?");
     if (!confirmStop) return;
     try {
-      const res = await fetch(`https://3.95.238.222/api/campaigns/stop-campaign/${campaignId}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-        },
-      });
+      const res = await fetch(
+        `https://3.95.238.222/api/campaigns/stop-campaign/${campaignId}`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
+          },
+        }
+      );
       if (res.ok) {
         toast.success("✅ Campaign stopped successfully!");
         setRunningCampaigns((prev) => prev.filter((id) => id !== campaignId));
@@ -175,7 +317,9 @@ export default function CampaignPage() {
   const handleSearch = (e) => {
     const value = e.target.value.toLowerCase();
     setSearch(value);
-    setFilteredCampaigns(campaigns.filter((c) => c.campaign_name?.toLowerCase().includes(value)));
+    setFilteredCampaigns(
+      campaigns.filter((c) => c.campaign_name?.toLowerCase().includes(value))
+    );
   };
 
   return (
@@ -204,21 +348,48 @@ export default function CampaignPage() {
             onChange={(e) => setCampaignName(e.target.value)}
           />
 
-          <select
-            multiple
-            className="w-full p-2 mb-4 rounded bg-white/20 text-black dark:text-white h-40"
-            value={selectedFileName}
-            onChange={(e) => {
-              const selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-              setSelectedFileName(selected);
-            }}
-          >
-            {file_name.map((file, i) => (
-              <option key={i} value={file}>
-                {file}
-              </option>
-            ))}
-          </select>
+          {/* Helper text for multiple selection */}
+          <p className="text-xs text-gray-400 mb-2">
+            Select up to 2 files:
+          </p>
+
+          {/* Checkbox list for file selection */}
+          <div className="mb-4 max-h-48 overflow-auto border rounded p-2 bg-white/20 text-black dark:text-white">
+            {file_name.map((file, i) => {
+              const isSelected = selectedFileName.includes(file);
+              return (
+                <label
+                  key={i}
+                  className={`block cursor-pointer select-none p-2 rounded mb-1 ${
+                    isSelected
+                      ? "bg-blue-600 text-white"
+                      : "hover:bg-blue-100 dark:hover:bg-blue-700"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    value={file}
+                    checked={isSelected}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        if (selectedFileName.length >= 2) {
+                          toast.error("❌ You can select a maximum of 2 files only.");
+                          return;
+                        }
+                        setSelectedFileName([...selectedFileName, file]);
+                      } else {
+                        setSelectedFileName(
+                          selectedFileName.filter((f) => f !== file)
+                        );
+                      }
+                    }}
+                    className="mr-2 align-middle"
+                  />
+                  {file}
+                </label>
+              );
+            })}
+          </div>
 
           <button
             onClick={handleCreate}
@@ -271,7 +442,7 @@ export default function CampaignPage() {
                   {new Date(c.campaign_scheduled_datetime).toLocaleString()}
                 </td>
                 <td className="px-6 py-3">{c.campaign_status || "Active"}</td>
-                <td className="px-6 py-3 text-center">
+                <td className="px-6 py-3">
                   {runningCampaigns.includes(c.campaign_id) ? (
                     <button
                       onClick={() => handleStopCampaign(c.campaign_id)}

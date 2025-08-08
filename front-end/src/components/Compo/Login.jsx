@@ -10,12 +10,14 @@ export default function Login({ onLogin }) {
   const [resetEmail, setResetEmail] = useState("");
   const [resetMsg, setResetMsg] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false); // <-- New state
 
-  const backendURL = "https://3.95.238.222"; // ⚠️ Use http, not https if SSL is not configured
+  const backendURL = "https://3.95.238.222"; // ⚠️ Use http if no SSL configured
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
+    setIsLoggingIn(true); // Disable button here
 
     try {
       const response = await fetch(`${backendURL}/api/user/login/`, {
@@ -34,12 +36,12 @@ export default function Login({ onLogin }) {
           console.error("❌ JSON parsing failed:", err);
           setLoginError("Invalid server response. Please contact support.");
           toast.error("Invalid server response.");
+          setIsLoggingIn(false); // Re-enable button on failure
           return;
         }
 
         console.log("✅ Login success:", data);
 
-        // Save token and user info
         sessionStorage.setItem("token", data.token || "dummy_token");
         sessionStorage.setItem(
           "user",
@@ -50,17 +52,20 @@ export default function Login({ onLogin }) {
         );
 
         toast.success("Login successful!");
+        setIsLoggingIn(false); // Re-enable button (optional here because of redirect)
         window.location.href = "/dashboard";
         if (onLogin) onLogin();
       } else {
         const err = await response.json();
         setLoginError(err.message || "Invalid credentials.");
         toast.error(err.message || "Invalid credentials.");
+        setIsLoggingIn(false); // Re-enable button on failure
       }
     } catch (error) {
       console.error("❌ Network error:", error);
       setLoginError("Network error. Please try again.");
       toast.error("Network error. Please try again.");
+      setIsLoggingIn(false); // Re-enable button on failure
     }
   };
 
@@ -194,6 +199,7 @@ export default function Login({ onLogin }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full p-3 bg-white/10 text-white placeholder-gray-300 rounded-md border border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+              disabled={isLoggingIn} // disable inputs during login
             />
             <input
               type={showPassword ? "text" : "password"}
@@ -201,6 +207,7 @@ export default function Login({ onLogin }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full p-3 bg-white/10 text-white placeholder-gray-300 rounded-md border border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+              disabled={isLoggingIn} // disable inputs during login
             />
 
             <div className="flex justify-between items-center text-sm text-gray-300">
@@ -209,6 +216,7 @@ export default function Login({ onLogin }) {
                   type="checkbox"
                   className="accent-indigo-500"
                   onChange={() => setShowPassword(!showPassword)}
+                  disabled={isLoggingIn} // disable checkbox during login
                 />
                 Show Password
               </label>
@@ -216,6 +224,7 @@ export default function Login({ onLogin }) {
                 type="button"
                 className="hover:underline text-indigo-400 cursor-pointer"
                 onClick={() => setShowForgotModal(true)}
+                disabled={isLoggingIn} // disable forgot password during login
               >
                 Forgot password?
               </button>
@@ -225,28 +234,23 @@ export default function Login({ onLogin }) {
 
             <button
               type="submit"
-              className="w-full py-3 bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-500 text-white font-bold rounded-md hover:scale-105 active:scale-95 shadow-lg hover:shadow-purple-500/30 transition-all duration-300 cursor-pointer"
+              disabled={isLoggingIn} // disable login button during login
+              className={`w-full py-3 bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-500 text-white font-bold rounded-md shadow-lg transition-all duration-300 cursor-pointer
+                ${isLoggingIn ? "opacity-50 cursor-not-allowed" : "hover:scale-105 active:scale-95 hover:shadow-purple-500/30"}`}
             >
-              Login
+              {isLoggingIn ? "Logging in..." : "Login"}
             </button>
 
-            <p className="text-center text-sm text-gray-400">
-              Don’t have an account?{" "}
-              <a href="/signup" className="text-indigo-400 hover:underline cursor-pointer">
-                Signup
-              </a>
-            </p>
-
             <div className="flex items-center justify-center gap-6 mt-6">
-              <span className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all cursor-pointer text-lg">
+              <a href="https://www.google.com/" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all cursor-pointer text-lg">
                 <FaGoogle />
-              </span>
-              <span className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-blue-600 transition-all cursor-pointer text-lg">
+              </a>
+              <a href="https://www.facebook.com/" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-blue-600 transition-all cursor-pointer text-lg">
                 <FaFacebookF />
-              </span>
-              <span className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-gray-800 transition-all cursor-pointer text-lg">
+              </a>
+              <a href="https://github.com/" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-gray-800 transition-all cursor-pointer text-lg">
                 <FaGithub />
-              </span>
+              </a>
             </div>
           </form>
         </div>

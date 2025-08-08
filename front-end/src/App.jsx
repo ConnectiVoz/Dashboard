@@ -74,16 +74,17 @@ const App = () => {
       {!hideNavbar && <Navbar toggleTheme={toggleTheme} darkMode={darkMode} />}
       <div className="p-5">
         {/* ✅ Global Toast Container */}
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          pauseOnHover
-          draggable
-          theme="dark"
-        />
+      <ToastContainer
+        position="top-center" 
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="dark"
+        style={{ marginTop: "60px" }} 
+         />
 
         <Routes>
           {/* 🔓 Public Routes */}
@@ -95,14 +96,14 @@ const App = () => {
               </PublicRoute>
             }
           />
-          <Route
+          {/* <Route
             path="/signup"
             element={
               <PublicRoute>
                 <Signup onSignup={handleLogin} />
               </PublicRoute>
             }
-          />
+          /> */}
           <Route
             path="/reset-password"
             element={
@@ -146,7 +147,7 @@ const App = () => {
             }
           />
           <Route
-            path="/Call List"
+            path="/Call Sheet"
             element={
               <PrivateRoute>
                 <CallList />

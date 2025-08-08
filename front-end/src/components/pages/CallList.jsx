@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { FaUpload, FaTrash, FaDownload, FaSearch } from "react-icons/fa";
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { toast } from "react-toastify";
+import * as XLSX from "xlsx"; // <-- Added for reading Excel/CSV
 
-export default function CallList() {
+export default function CallSheet() {
   const [fileData, setFileData] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [search, setSearch] = useState("");
@@ -17,12 +18,38 @@ export default function CallList() {
     try {
       const res = await fetchWithAuth("https://3.95.238.222/api/call_list/files");
       const data = await res.json();
-      console.log("Fetched files:", data);
+      console.log("📌 API Response from /files:", data);
       if (Array.isArray(data?.files)) {
         setFileData(data.files);
+        console.log("✅ Setting fileData state with:", data.files);
+      } else {
+        console.warn("⚠️ files is not an array in API response");
       }
     } catch (err) {
-      console.error("Failed to fetch file list", err);
+      console.error("❌ Failed to fetch file list", err);
+    }
+  };
+
+  const uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const uploadRes = await fetchWithAuth("https://3.95.238.222/api/call_list/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (uploadRes.ok) {
+        toast.success("✅ File uploaded successfully");
+        fetchFiles(); // refresh files list after upload
+        setShowUploadModal(false);
+      } else {
+        toast.error("❌ Upload failed");
+      }
+    } catch (err) {
+      console.error("❌ Upload failed", err);
+      toast.error("❌ Upload failed due to network error");
     }
   };
 
@@ -30,24 +57,8 @@ export default function CallList() {
     const file = e.target.files[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const res = await fetchWithAuth("https://3.95.238.222/api/call_list/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (res.ok) {
-        toast.success("✅ File uploaded");
-        fetchFiles();
-        setShowUploadModal(false);
-      } else {
-        toast.error("❌ Upload failed");
-      }
-    } catch (err) {
-      console.error("Upload failed", err);
-    }
+    // Directly upload file without any duplicate check
+    uploadFile(file);
   };
 
   const handleDownload = async (filename) => {
@@ -81,7 +92,7 @@ export default function CallList() {
     if (!window.confirm("Are you sure you want to delete this file?")) return;
     try {
       const res = await fetchWithAuth(`https://3.95.238.222/api/call_list/delete/${filename}`, {
-        method: "DELETE",
+        method: "GET",
       });
       if (res.ok) {
         toast.success("✅ File deleted");
@@ -98,7 +109,7 @@ export default function CallList() {
 
   return (
     <div className="p-6 min-h-screen bg-gray-100 text-gray-900 dark:bg-gradient-to-br dark:from-gray-900 dark:to-black dark:text-white">
-      <h1 className="text-4xl font-bold mb-6 text-center">📁 Call List Manager</h1>
+      <h1 className="text-4xl font-bold mb-6 text-center">📁 Call Sheet Manager</h1>
 
       {/* Search bar */}
       <div className="max-w-xl mx-auto mb-4">
@@ -124,7 +135,7 @@ export default function CallList() {
         </button>
       </div>
 
-      {/* Modal for Upload Excel Instructions */}
+      {/* Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-900 p-6 rounded-lg w-full max-w-lg text-black dark:text-white">
