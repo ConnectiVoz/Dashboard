@@ -30,7 +30,7 @@ export default function CallLogsTable() {
     try {
       const token = sessionStorage.getItem("token");
       if (!token) throw new Error("User not authenticated.");
-      const res = await fetchWithAuth(`https://3.95.238.222/api/call-logs/list`, {
+      const res = await fetchWithAuth(`https://rivoz.in/api/call-logs/list`, {
         headers: {
           "Authorization": `Bearer ${token}`,
           Accept: "application/json",
@@ -73,7 +73,7 @@ export default function CallLogsTable() {
   const handleCreate = async () => {
     try {
       const token = sessionStorage.getItem("token");
-      const res = await fetch(`https://3.95.238.222/api/call-logs/create`, {
+      const res = await fetch(`https://rivoz.in/api/call-logs/create`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -110,7 +110,7 @@ export default function CallLogsTable() {
       form.append("id", uploadId);
       form.append("recording", uploadFile);
       const token = sessionStorage.getItem("token");
-      const res = await fetch(`https://3.95.238.222/api/call-logs/upload-recording`, {
+      const res = await fetch(`https://rivoz.in/api/call-logs/upload-recording`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` },
         body: form,
@@ -132,7 +132,7 @@ export default function CallLogsTable() {
 
   const handleDownloadByUrl = async (url, id) => {
     try {
-      const res = await fetch(`https://3.95.238.222/api/call-logs/download-recording/${id}`, {
+      const res = await fetch(`https://rivoz.in/api/call-logs/download-recording/${id}`, {
         headers: {
           "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
           "Content-Type": "application/json",

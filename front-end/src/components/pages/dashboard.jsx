@@ -29,7 +29,7 @@ const Dashboard = () => {
     try {
       const token = sessionStorage.getItem("token");
       if (!token) throw new Error("User not authenticated.");
-      const response = await fetchWithAuth("https://3.95.238.222/api/homepage/homepage", {
+      const response = await fetchWithAuth("https://rivoz.in/api/homepage/homepage", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -56,7 +56,7 @@ const Dashboard = () => {
     if (!token) return;
 
     try {
-      const res = await fetch("https://3.95.238.222/api/user/amount-spent/", {
+      const res = await fetch("https://rivoz.in/api/user/amount-spent/", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -76,7 +76,7 @@ const Dashboard = () => {
     if (!token) return;
 
     try {
-      const res = await fetch("https://3.95.238.222/api/bots/list", {
+      const res = await fetch("https://rivoz.in/api/bots/list", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -102,7 +102,7 @@ const Dashboard = () => {
     if (!token) return;
 
     try {
-      const res = await fetch("https://3.95.238.222/api/user/user-profile/", {
+      const res = await fetch("https://rivoz.in/api/user/user-profile/", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -128,7 +128,7 @@ const Dashboard = () => {
       const token = sessionStorage.getItem("token");
       if (!token) throw new Error("User not authenticated.");
 
-      const res = await fetch("https://3.95.238.222/api/call-logs/list", {
+      const res = await fetch("https://rivoz.in/api/call-logs/list", {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -155,7 +155,7 @@ const Dashboard = () => {
       const token = sessionStorage.getItem("token");
       if (!token) return;
 
-      const res = await fetch("https://3.95.238.222/api/campaigns/list", {
+      const res = await fetch("https://rivoz.in/api/campaigns/list", {
         headers: { "Authorization": `Bearer ${token}` },
       });
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-const API_BASE = "https://3.95.238.222/api/bots";
+const API_BASE = "https://rivoz.in/api/bots";
 
 function KnowledgeBase() {
   const [kbData, setKbData] = useState([]);

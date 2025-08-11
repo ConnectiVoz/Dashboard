@@ -39,7 +39,7 @@ export default function CampaignPage() {
 
   const fetchBots = async () => {
     try {
-      const res = await fetch("https://3.95.238.222/api/bots/list");
+      const res = await fetch("https://rivoz.in/api/bots/list");
       const data = await res.json();
       const filtered = data.filter((bot) => bot.bot_name === "ivozvoiceagent");
       setBots(filtered);
@@ -53,7 +53,7 @@ export default function CampaignPage() {
   const fetchCallLists = async () => {
     try {
       const res = await fetchWithAuth(
-        "https://3.95.238.222/api/call_list/files"
+        "https://rivoz.in/api/call_list/files"
       );
       if (!res.ok) throw new Error(`API error ${res.status}: ${res.statusText}`);
       const data = await res.json();
@@ -71,7 +71,7 @@ export default function CampaignPage() {
   const fetchCampaigns = async () => {
     try {
       const token = sessionStorage.getItem("token");
-      const res = await fetch("https://3.95.238.222/api/campaigns/list", {
+      const res = await fetch("https://rivoz.in/api/campaigns/list", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -135,7 +135,7 @@ export default function CampaignPage() {
     };
 
     try {
-      const res = await fetch("https://3.95.238.222/api/campaigns/create", {
+      const res = await fetch("https://rivoz.in/api/campaigns/create", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -266,7 +266,7 @@ export default function CampaignPage() {
     setRunningCampaigns((prev) => [...prev, campaignId]);
     try {
       const res = await fetch(
-        `https://3.95.238.222/api/campaigns/run-campaign/${campaignId}`,
+        `https://rivoz.in/api/campaigns/run-campaign/${campaignId}`,
         {
           method: "POST",
           headers: {
@@ -293,7 +293,7 @@ export default function CampaignPage() {
     if (!confirmStop) return;
     try {
       const res = await fetch(
-        `https://3.95.238.222/api/campaigns/stop-campaign/${campaignId}`,
+        `https://rivoz.in/api/campaigns/stop-campaign/${campaignId}`,
         {
           method: "POST",
           headers: {

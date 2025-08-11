@@ -66,7 +66,7 @@ export default function Signup({ onSignup }) {
   console.log("Registering user with data:", payload); // Confirm this logs correctly
 
   try {
-    const response = await fetch("https://3.95.238.222/api/user/register/", {
+    const response = await fetch("https://rivoz.in/api/user/register/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

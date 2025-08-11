@@ -1,7 +1,7 @@
 import React from "react";
 
 const CallLogs = ({ data, selectedCalls, setSelectedCalls }) => {
-  const BASE_URL = "https://3.95.238.222/";
+  const BASE_URL = "https://rivoz.in/";
   const token = sessionStorage.getItem("token"); // or localStorage.getItem
 
   const handleCheckbox = (id) => {
@@ -12,7 +12,7 @@ const CallLogs = ({ data, selectedCalls, setSelectedCalls }) => {
 
   const handleDownload = async (id) => {
     try {
-      const res = await fetch(`https://3.95.238.222/api/call-logs/download-zip`, {
+      const res = await fetch(`https://rivoz.in/api/call-logs/download-zip`, {
         headers: {
           "Authorization": `Bearer ${token}`,
         },

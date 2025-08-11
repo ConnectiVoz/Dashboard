@@ -12,7 +12,7 @@ export default function Login({ onLogin }) {
   const [loginError, setLoginError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false); // <-- New state
 
-  const backendURL = "https://3.95.238.222"; // ⚠️ Use http if no SSL configured
+  const backendURL = "https://rivoz.in"; // ⚠️ Use http if no SSL configured
 
   const handleLogin = async (e) => {
     e.preventDefault();

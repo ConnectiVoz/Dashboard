@@ -16,7 +16,7 @@ export default function CallSheet() {
 
   const fetchFiles = async () => {
     try {
-      const res = await fetchWithAuth("https://3.95.238.222/api/call_list/files");
+      const res = await fetchWithAuth("https://rivoz.in/api/call_list/files");
       const data = await res.json();
       console.log("📌 API Response from /files:", data);
       if (Array.isArray(data?.files)) {
@@ -35,7 +35,7 @@ export default function CallSheet() {
     formData.append("file", file);
 
     try {
-      const uploadRes = await fetchWithAuth("https://3.95.238.222/api/call_list/upload", {
+      const uploadRes = await fetchWithAuth("https://rivoz.in/api/call_list/upload", {
         method: "POST",
         body: formData,
       });
@@ -64,7 +64,7 @@ export default function CallSheet() {
   const handleDownload = async (filename) => {
     try {
       const res = await fetchWithAuth(
-        `https://3.95.238.222/api/call_list/download/${encodeURIComponent(filename)}`,
+        `https://rivoz.in/api/call_list/download/${encodeURIComponent(filename)}`,
         { method: "GET" }
       );
 
@@ -91,7 +91,7 @@ export default function CallSheet() {
   const handleDelete = async (filename) => {
     if (!window.confirm("Are you sure you want to delete this file?")) return;
     try {
-      const res = await fetchWithAuth(`https://3.95.238.222/api/call_list/delete/${filename}`, {
+      const res = await fetchWithAuth(`https://rivoz.in/api/call_list/delete/${filename}`, {
         method: "GET",
       });
       if (res.ok) {

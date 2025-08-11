@@ -7,7 +7,7 @@ const ManageAgents = () => {
   useEffect(() => {
     const fetchAgents = async () => {
       const token = sessionStorage.getItem("token");
-      const res = await fetch("https://3.95.238.222/api/bots/list", {
+      const res = await fetch("https://rivoz.in/api/bots/list", {
         headers: {
           Authorization: `Bearer ${token}`,
         },

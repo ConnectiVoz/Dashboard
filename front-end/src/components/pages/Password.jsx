@@ -18,7 +18,7 @@ function Password() {
     e.preventDefault();
 
     try {
-      const response = await fetch("https://3.95.238.222/api/user/update-password/", {
+      const response = await fetch("https://rivoz.in/api/user/update-password/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
