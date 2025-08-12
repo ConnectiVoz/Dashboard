@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FaSearch } from "react-icons/fa";
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { toast } from "react-toastify";
+import * as XLSX from "xlsx";
 
 export default function CampaignPage() {
   const [campaignName, setCampaignName] = useState("");
@@ -112,6 +113,7 @@ export default function CampaignPage() {
     }
 
     setCreating(true);
+
     const token = sessionStorage.getItem("token");
 
     function getISTDateTime(minutesToAdd = 0) {
@@ -156,6 +158,7 @@ export default function CampaignPage() {
       if (res.ok) {
         toast.success(data?.message || "✅ Campaign created successfully!");
 
+        // ** Duplicate data excel download logic starts here **
         if (data?.["duplicate data skipped"]) {
           let duplicates = [];
 
@@ -163,7 +166,6 @@ export default function CampaignPage() {
             if (Array.isArray(data["duplicate data skipped"])) {
               duplicates = data["duplicate data skipped"];
             } else if (typeof data["duplicate data skipped"] === "string") {
-              // Try to parse string safely
               const cleanStr = data["duplicate data skipped"]
                 .replace(/'/g, '"')
                 .replace(/None/g, "null");
@@ -178,70 +180,35 @@ export default function CampaignPage() {
             toast.error("⚠️ Could not parse duplicate data info.");
           }
 
-          console.log("Parsed duplicates:", duplicates);
-
           if (duplicates.length > 0) {
+            // Remove duplicate phones if any
             const phoneSet = new Set();
             const uniqueDuplicates = duplicates.filter((d) => {
-              if (!d.phone_number) return false;
-              if (phoneSet.has(d.phone_number)) return false;
-              phoneSet.add(d.phone_number);
+              if (!d.phone) return false;
+              if (phoneSet.has(d.phone)) return false;
+              phoneSet.add(d.phone);
               return true;
             });
 
-            const duplicatesText = uniqueDuplicates
-              .map(
-                (d) =>
-                  `${d.first_name || ""} ${d.last_name || ""} (${d.phone_number})`
-              )
-              .join("\n");
+            // Map to excel columns
+            const worksheetData = uniqueDuplicates.map((d) => ({
+              Title: d.title || "",
+              "First Name": d.first_name || "",
+              "Last Name": d.last_name || "",
+              Phone: d.phone || "",
+              "Created At": d.created_at || "",
+            }));
 
-            toast.info(
-              <div>
-                <p>⚠ Duplicate data found (Phone Number Match):</p>
-                <pre
-                  className="whitespace-pre-wrap"
-                  style={{
-                    maxHeight: "600px",
-                    minHeight: "300px",
-                    maxWidth: "1000px",
-                    overflowY: "auto",
-                    overflowX: "auto",
-                    padding: "20px",
-                    backgroundColor: "#1e293b",
-                    borderRadius: "8px",
-                    fontSize: "16px",
-                    color: "white",
-                    lineHeight: "1.6",
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {duplicatesText}
-                </pre>
-                <button
-                  onClick={() => toast.dismiss()}
-                  style={{
-                    backgroundColor: "#3b82f6",
-                    color: "white",
-                    padding: "12px 24px",
-                    borderRadius: "6px",
-                    marginTop: "20px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                    border: "none",
-                  }}
-                >
-                  OK
-                </button>
-              </div>,
-              { autoClose: false, closeOnClick: false }
-            );
-          } else {
-            console.log("No duplicates to show in toast.");
+            const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Duplicates");
+
+            XLSX.writeFile(workbook, `duplicate_data_${Date.now()}.xlsx`);
+
+            toast.info("⚠ Duplicate data found. Excel download started.");
           }
-        } else {
-          console.log("No 'duplicate data skipped' in response.");
         }
+        // ** Duplicate data excel download logic ends here **
 
         // Reset form & refresh campaigns
         setCampaignName("");
@@ -259,9 +226,7 @@ export default function CampaignPage() {
   };
 
   const handleStartCampaign = async (campaignId) => {
-    const confirmStart = window.confirm(
-      "Do you want to start this campaign?."
-    );
+    const confirmStart = window.confirm("Do you want to start this campaign?.");
     if (!confirmStart) return;
     setRunningCampaigns((prev) => [...prev, campaignId]);
     try {
@@ -297,7 +262,7 @@ export default function CampaignPage() {
         {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
+            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
           },
         }
       );
@@ -348,12 +313,8 @@ export default function CampaignPage() {
             onChange={(e) => setCampaignName(e.target.value)}
           />
 
-          {/* Helper text for multiple selection */}
-          <p className="text-xs text-gray-400 mb-2">
-            Select up to 2 files:
-          </p>
+          <p className="text-xs text-gray-400 mb-2">Select up to 2 files:</p>
 
-          {/* Checkbox list for file selection */}
           <div className="mb-4 max-h-48 overflow-auto border rounded p-2 bg-white/20 text-black dark:text-white">
             {file_name.map((file, i) => {
               const isSelected = selectedFileName.includes(file);
@@ -441,7 +402,10 @@ export default function CampaignPage() {
                 <td className="px-6 py-3">
                   {new Date(c.campaign_scheduled_datetime).toLocaleString()}
                 </td>
-                <td className="px-6 py-3">{c.campaign_status || "Active"}</td>
+                <td className="px-6 py-3">
+                  {(c.campaign_status || "Active").charAt(0).toUpperCase() +
+                    (c.campaign_status || "Active").slice(1)}
+                </td>
                 <td className="px-6 py-3">
                   {runningCampaigns.includes(c.campaign_id) ? (
                     <button
@@ -461,6 +425,7 @@ export default function CampaignPage() {
                 </td>
               </tr>
             ))}
+
             {filteredCampaigns.length === 0 && (
               <tr>
                 <td colSpan="5" className="text-center py-6">

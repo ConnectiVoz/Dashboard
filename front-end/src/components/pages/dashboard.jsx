@@ -28,6 +28,7 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("token");
+      console.log("Fetching dashboard data with token:", token);
       if (!token) throw new Error("User not authenticated.");
       const response = await fetchWithAuth("https://3.95.238.222/api/homepage/homepage", {
         method: "POST",

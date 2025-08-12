@@ -2,13 +2,25 @@ import React, { useState, useEffect } from "react";
 import { FaUpload, FaTrash, FaDownload, FaSearch } from "react-icons/fa";
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { toast } from "react-toastify";
-import * as XLSX from "xlsx"; // <-- Added for reading Excel/CSV
+import * as XLSX from "xlsx";
 
 export default function CallSheet() {
   const [fileData, setFileData] = useState([]);
-  const [selectedFile, setSelectedFile] = useState(null);
   const [search, setSearch] = useState("");
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateRows, setDuplicateRows] = useState([]);
+  const [duplicateFileUrl, setDuplicateFileUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  // Sample file format headers
+  const expectedHeaders = [
+    "Title",
+    "First Name",
+    "Last Name",
+    "Phone",
+    "Created At"
+  ];
 
   useEffect(() => {
     fetchFiles();
@@ -18,12 +30,8 @@ export default function CallSheet() {
     try {
       const res = await fetchWithAuth("https://3.95.238.222/api/call_list/files");
       const data = await res.json();
-      console.log("📌 API Response from /files:", data);
       if (Array.isArray(data?.files)) {
         setFileData(data.files);
-        console.log("✅ Setting fileData state with:", data.files);
-      } else {
-        console.warn("⚠️ files is not an array in API response");
       }
     } catch (err) {
       console.error("❌ Failed to fetch file list", err);
@@ -41,9 +49,29 @@ export default function CallSheet() {
       });
 
       if (uploadRes.ok) {
-        toast.success("✅ File uploaded successfully");
-        fetchFiles(); // refresh files list after upload
-        setShowUploadModal(false);
+        const resJson = await uploadRes.json();
+
+        if (resJson.duplicates && resJson.duplicates.length > 0) {
+  console.log("Duplicate data found", resJson.duplicates);
+  setDuplicateRows(resJson.duplicates);
+  if (resJson.duplicate_file_url) {
+    setDuplicateFileUrl(resJson.duplicate_file_url);
+  } else {
+    setDuplicateFileUrl("");
+  }
+  setShowDuplicateModal(true);
+} 
+        else if (resJson.success) {
+          // No duplicates → success
+
+          setShowDuplicateModal(true);
+        } else {
+          // No duplicates → success
+          toast.success("✅ File uploaded successfully");
+          fetchFiles();
+          setShowUploadModal(false);
+          setSelectedFile(null);
+        }
       } else {
         toast.error("❌ Upload failed");
       }
@@ -53,12 +81,43 @@ export default function CallSheet() {
     }
   };
 
-  const handleFileChange = async (e) => {
+  // File selection — just store, don't upload
+  const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setSelectedFile(file);
+  };
 
-    // Directly upload file without any duplicate check
-    uploadFile(file);
+  // Validate format only, then upload and handle duplicates from backend
+  const processAndUploadFile = async () => {
+    if (!selectedFile) {
+      toast.error("❌ Please select a file first");
+      return;
+    }
+
+    try {
+      const data = await selectedFile.arrayBuffer();
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      // Validate headers only
+      const fileHeaders = Object.keys(jsonData[0] || {});
+      if (
+        fileHeaders.length !== expectedHeaders.length ||
+        !expectedHeaders.every((h, i) => h === fileHeaders[i])
+      ) {
+        toast.error("❌ Invalid format of file");
+        return;
+      }
+
+      // Upload file, backend handles duplicate check
+      uploadFile(selectedFile);
+    } catch (err) {
+      console.error("❌ Error processing file", err);
+      toast.error("❌ Could not read file");
+    }
   };
 
   const handleDownload = async (filename) => {
@@ -135,12 +194,16 @@ export default function CallSheet() {
         </button>
       </div>
 
-      {/* Modal */}
+      {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-900 p-6 rounded-lg w-full max-w-lg text-black dark:text-white">
             <h2 className="text-2xl font-bold mb-3">📤 Upload Call List File</h2>
-            <p className="mb-2 text-sm">Make sure your file includes columns: <strong>First Name</strong>, <strong>Last Name</strong>, <strong>Phone Number</strong>.</p>
+            <p className="mb-2 text-sm">
+              Make sure your file includes columns: <strong>Title</strong>,{" "}
+              <strong>First Name</strong>, <strong>Last Name</strong>, <strong>Phone</strong>,{" "}
+              <strong>Created At</strong>.
+            </p>
             <a
               href="/sample_call_list.xlsx"
               download
@@ -149,7 +212,7 @@ export default function CallSheet() {
               📎 Download Sample Template
             </a>
 
-            <input type="file" onChange={handleFileChange} className="w-full mb-4" />
+            <input type="file" onChange={handleFileSelect} className="w-full mb-4" />
 
             <div className="flex justify-between">
               <button
@@ -159,10 +222,44 @@ export default function CallSheet() {
                 Skip
               </button>
               <button
-                onClick={() => document.querySelector('input[type="file"]').click()}
+                onClick={processAndUploadFile}
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
               >
                 Upload Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate Modal */}
+      {showDuplicateModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-lg w-full max-w-lg text-black dark:text-white">
+            <h2 className="text-xl font-bold mb-3">⚠️ Duplicate Data Found</h2>
+            <p className="mb-4">Some rows already exist in the system.</p>
+            <ul className="max-h-40 overflow-y-auto text-sm border p-2 rounded">
+              {duplicateRows.map((row, idx) => (
+                <li key={idx}>
+                  {row["Title"]} {row["First Name"]} {row["Last Name"]} — {row["Phone"]} — {row["Created At"]}
+                </li>
+              ))}
+            </ul>
+            {duplicateFileUrl && (
+              <a
+                href={duplicateFileUrl}
+                download="duplicate_data.xlsx"
+                className="mt-3 inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+              >
+                📥 Download Duplicate Excel
+              </a>
+            )}
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setShowDuplicateModal(false)}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+              >
+                Close
               </button>
             </div>
           </div>
@@ -186,7 +283,7 @@ export default function CallSheet() {
             {filteredFiles.map((f, idx) => (
               <tr key={idx} className="hover:bg-white/5">
                 <td className="px-4 py-2">
-                  <input type="checkbox" className="form-checkbox" />
+                  <input type="checkbox" className="form-checkbox" disabled />
                 </td>
                 <td className="px-4 py-2">{idx + 1}</td>
                 <td className="px-4 py-2">📄 {f}</td>

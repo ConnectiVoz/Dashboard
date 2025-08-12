@@ -1,30 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { FaDownload, FaUpload, FaPlus, FaBars } from "react-icons/fa";
+import { FaDownload } from "react-icons/fa";
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
-import { toast } from "react-toastify"; // ✅ Added
+import { toast } from "react-toastify";
 
 export default function CallLogsTable() {
   const [callLogs, setCallLogs] = useState([]);
   const [filteredLogs, setFilteredLogs] = useState([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showUpload, setShowUpload] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [uploadId, setUploadId] = useState("");
-  const [uploadFile, setUploadFile] = useState(null);
-  const [downloadId, setDownloadId] = useState("");
-  const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    phone_number: "",
-    status: "",
-    call_date: "",
-    campaign: "",
-    start_time: "",
-    end_time: "",
-    call_recording: "",
-  });
 
   const fetchCallLogs = async () => {
     try {
@@ -32,7 +15,7 @@ export default function CallLogsTable() {
       if (!token) throw new Error("User not authenticated.");
       const res = await fetchWithAuth(`https://3.95.238.222/api/call-logs/list`, {
         headers: {
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           Accept: "application/json",
         },
       });
@@ -45,12 +28,11 @@ export default function CallLogsTable() {
 
       const data = await res.json();
       const logs = Array.isArray(data) ? data : data.data || data.callLogs || [];
-      // toast.success("Call logs fetched successfully!"); // ✅
       setCallLogs(logs);
       setFilteredLogs(logs);
     } catch (err) {
       console.error("❌ Fetch error:", err.message);
-      toast.error("Failed to fetch call logs."); // ✅
+      toast.error("Failed to fetch call logs.");
     }
   };
 
@@ -63,109 +45,70 @@ export default function CallLogsTable() {
       Object.values(log).some((val) => String(val).toLowerCase().includes(search.toLowerCase()))
     );
     if (statusFilter !== "All") {
-      filtered = filtered.filter((log) =>
-        (log.status === statusFilter || (statusFilter === "Not Picked" && log.status === "Ring"))
+      filtered = filtered.filter(
+        (log) => log.status === statusFilter || (statusFilter === "Not Picked" && log.status === "Ring")
       );
     }
     setFilteredLogs(filtered);
   }, [search, statusFilter, callLogs]);
 
-  const handleCreate = async () => {
-    try {
-      const token = sessionStorage.getItem("token");
-      const res = await fetch(`https://3.95.238.222/api/call-logs/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (res.ok) {
-        toast.success("Call log created successfully!"); // ✅
-        setShowCreateForm(false);
-        setFormData({
-          status: "",
-          call_date: "",
-          campaign: "",
-          start_time: "",
-          end_time: "",
-          call_recording: "",
-        });
-        fetchCallLogs();
-      } else {
-        const err = await res.json();
-        toast.error(err.message || "Failed to create call log."); // ✅
-      }
-    } catch (err) {
-      toast.error("Failed to create call log."); // ✅
-      console.error("Create error:", err);
+  const handleDownloadByUrl = (url, id) => {
+    if (!url || url === "null") {
+      toast.info("No recording available to download.");
+      return;
     }
-  };
-
-  const handleUpload = async () => {
-    try {
-      const form = new FormData();
-      form.append("id", uploadId);
-      form.append("recording", uploadFile);
-      const token = sessionStorage.getItem("token");
-      const res = await fetch(`https://3.95.238.222/api/call-logs/upload-recording`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}` },
-        body: form,
+    // download logic
+    fetch(`https://3.95.238.222/api/call-logs/download-recording/${id}`, {
+      headers: {
+        Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to download recording.");
+        return res.blob();
+      })
+      .then((blob) => {
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = `call_recording_${id}.mp3`;
+        a.click();
+        a.remove();
+        toast.success("Recording downloaded successfully!");
+      })
+      .catch((err) => {
+        toast.error("Download failed. Please try again.");
+        console.error("Recording download failed:", err);
       });
-      if (res.ok) {
-        toast.success("Recording uploaded successfully!"); // ✅
-        setShowUpload(false);
-        setUploadId("");
-        setUploadFile(null);
-        fetchCallLogs();
-      } else {
-        toast.error("Failed to upload recording."); // ✅
-      }
-    } catch (err) {
-      toast.error("Upload error. Please try again."); // ✅
-      console.error("Upload error:", err);
-    }
-  };
-
-  const handleDownloadByUrl = async (url, id) => {
-    try {
-      const res = await fetch(`https://3.95.238.222/api/call-logs/download-recording/${id}`, {
-        headers: {
-          "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!res.ok) throw new Error("Failed to download recording.");
-
-      const blob = await res.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = `call_recording_${id}.mp3`;
-      a.click();
-      a.remove();
-
-      toast.success("Recording downloaded successfully!"); // ✅
-    } catch (err) {
-      toast.error("Download failed. Please try again."); // ✅
-      console.error("Recording download failed:", err);
-    }
   };
 
   const getStatusLabel = (status) => {
     switch (status) {
       case "Connected":
-        return <span className="text-green-500 font-semibold">✅ Connected</span>;
+        return (
+          <span className="text-green-500 font-semibold">
+            ✅ Connected
+          </span>
+        );
       case "Missed":
-        return <span className="text-red-500 font-semibold">❌ Missed</span>;
+        return (
+          <span className="text-red-500 font-semibold">
+            ❌ Missed
+          </span>
+        );
       case "Pending":
-        return <span className="text-yellow-500 font-semibold">🕒 Pending</span>;
+        return (
+          <span className="text-yellow-500 font-semibold">
+            🕒 Pending
+          </span>
+        );
       case "Ring":
-        return <span className="text-gray-400 font-semibold">⚠️ Not Picked</span>;
+        return (
+          <span className="text-gray-400 font-semibold">
+            ⚠️ Not Picked
+          </span>
+        );
       default:
         return status;
     }
@@ -197,7 +140,7 @@ export default function CallLogsTable() {
         </div>
       </div>
 
-      {/* Table View (for Desktop) */}
+      {/* Table View (Desktop) */}
       <div className="overflow-x-auto shadow rounded-xl border dark:border-gray-700 border-gray-200 hidden md:block">
         <table className="min-w-full text-sm text-left">
           <thead className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100">
@@ -225,7 +168,9 @@ export default function CallLogsTable() {
                 <td className="p-2">{log.campaign}</td>
                 <td className="p-2">{log.start_time}</td>
                 <td className="p-2">
-                  {log.end_time ? log.end_time : <span className="text-gray-400 italic">⏰ No end time</span>}
+                  {log.end_time && log.end_time !== ""
+                    ? log.end_time
+                    : "---"}
                 </td>
                 <td className="p-2">
                   {log.call_recording && log.call_recording !== "null" ? (
@@ -237,7 +182,15 @@ export default function CallLogsTable() {
                       <FaDownload />
                     </button>
                   ) : (
-                    <span className="text-gray-400 italic">🎧 No recording</span>
+                    <button
+                      disabled
+                      onClick={() => toast.info("No recording available to download.")}
+                      className="text-gray-400 cursor-not-allowed flex items-center gap-1"
+                      title="No recording available"
+                    >
+                      <FaDownload />
+                      Download
+                    </button>
                   )}
                 </td>
               </tr>
@@ -254,18 +207,31 @@ export default function CallLogsTable() {
             className="bg-white/70 dark:bg-black/60 backdrop-blur-md border border-gray-300 dark:border-gray-600 shadow-xl rounded-2xl p-4 transition-transform transform hover:scale-[1.01]"
           >
             <div className="flex justify-between items-center mb-2">
-              <h3 className="text-lg font-bold text-purple-700 dark:text-purple-400">Call #{log.id}</h3>
+              <h3 className="text-lg font-bold text-purple-700 dark:text-purple-400">
+                Call #{log.id}
+              </h3>
               {getStatusLabel(log.status)}
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm text-gray-800 dark:text-gray-200">
-              <div><strong>Name:</strong> {`${log.person.first_name} ${log.person.last_name}`}</div>
-              <div><strong>Phone:</strong> {log.person.phone_number}</div>
-              <div><strong>Campaign:</strong> {log.campaign}</div>
-              <div><strong>Call Date:</strong> {log.call_date}</div>
-              <div><strong>Start Time:</strong> {log.start_time}</div>
+              <div>
+                <strong>Name:</strong> {`${log.person.first_name} ${log.person.last_name}`}
+              </div>
+              <div>
+                <strong>Phone:</strong> {log.person.phone_number}
+              </div>
+              <div>
+                <strong>Campaign:</strong> {log.campaign}
+              </div>
+              <div>
+                <strong>Call Date:</strong> {log.call_date}
+              </div>
+              <div>
+                <strong>Start Time:</strong> {log.start_time}
+              </div>
               <div>
                 <strong>End Time:</strong>{" "}
-                {log.end_time ? log.end_time : <span className="text-gray-400 italic">⏰ No end time</span>}
+                {log.end_time && log.end_time !== "" ? "---" : log.end_time}
+                { !log.end_time || log.end_time === "" ? "---" : log.end_time }
               </div>
             </div>
             <div className="mt-3 text-sm">
@@ -279,7 +245,14 @@ export default function CallLogsTable() {
                   <span className="text-sm">Download</span>
                 </button>
               ) : (
-                <span className="text-gray-400 italic">🎧 No recording</span>
+                <button
+                  disabled
+                  onClick={() => toast.info("No recording available to download.")}
+                  className="text-gray-400 cursor-not-allowed flex items-center gap-2"
+                >
+                  <FaDownload />
+                  <span className="text-sm">Download</span>
+                </button>
               )}
             </div>
           </div>
