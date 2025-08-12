@@ -20,7 +20,7 @@ function Security() {
     }
 
     try {
-      const response = await fetch("https://3.95.238.222/api/user/update-profile/", {
+      const response = await fetch("https://rivoz.in/api/user/update-profile/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

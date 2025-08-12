@@ -10,7 +10,7 @@ export default defineConfig({
    ],
     proxy: {
       '/api': {
-        target: 'https://3.95.238.222',
+        target: 'https://rivoz.in',
         changeOrigin: true,
         secure: false,
         // '/api/user/register/' -> 'https://ed36.../api/user/register/'

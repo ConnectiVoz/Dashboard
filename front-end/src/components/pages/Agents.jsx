@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-const API_BASE = "https://3.95.238.222/api/bots";
+const API_BASE = "https://rivoz.in/api/bots";
 
 function Agents() {
   const [agents, setAgents] = useState([]);
@@ -49,7 +49,7 @@ function Agents() {
   const toggleStatus = async (bot_id, isActive) => {
     try {
       const token = sessionStorage.getItem("token");
-      await fetch(`https://3.95.238.222/api/bots/update-status/${bot_id}`, {
+      await fetch(`https://rivoz.in/api/bots/update-status/${bot_id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

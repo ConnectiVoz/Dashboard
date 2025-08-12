@@ -13,7 +13,7 @@ export default function CallLogsTable() {
     try {
       const token = sessionStorage.getItem("token");
       if (!token) throw new Error("User not authenticated.");
-      const res = await fetchWithAuth(`https://3.95.238.222/api/call-logs/list`, {
+      const res = await fetchWithAuth(`https://rivoz.in/api/call-logs/list`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -52,6 +52,7 @@ export default function CallLogsTable() {
     setFilteredLogs(filtered);
   }, [search, statusFilter, callLogs]);
 
+<<<<<<< HEAD
   const handleDownloadByUrl = (url, id) => {
     if (!url || url === "null") {
       toast.info("No recording available to download.");
@@ -81,6 +82,92 @@ export default function CallLogsTable() {
         toast.error("Download failed. Please try again.");
         console.error("Recording download failed:", err);
       });
+=======
+  const handleCreate = async () => {
+    try {
+      const token = sessionStorage.getItem("token");
+      const res = await fetch(`https://rivoz.in/api/call-logs/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (res.ok) {
+        toast.success("Call log created successfully!"); // ✅
+        setShowCreateForm(false);
+        setFormData({
+          status: "",
+          call_date: "",
+          campaign: "",
+          start_time: "",
+          end_time: "",
+          call_recording: "",
+        });
+        fetchCallLogs();
+      } else {
+        const err = await res.json();
+        toast.error(err.message || "Failed to create call log."); // ✅
+      }
+    } catch (err) {
+      toast.error("Failed to create call log."); // ✅
+      console.error("Create error:", err);
+    }
+  };
+
+  const handleUpload = async () => {
+    try {
+      const form = new FormData();
+      form.append("id", uploadId);
+      form.append("recording", uploadFile);
+      const token = sessionStorage.getItem("token");
+      const res = await fetch(`https://rivoz.in/api/call-logs/upload-recording`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` },
+        body: form,
+      });
+      if (res.ok) {
+        toast.success("Recording uploaded successfully!"); // ✅
+        setShowUpload(false);
+        setUploadId("");
+        setUploadFile(null);
+        fetchCallLogs();
+      } else {
+        toast.error("Failed to upload recording."); // ✅
+      }
+    } catch (err) {
+      toast.error("Upload error. Please try again."); // ✅
+      console.error("Upload error:", err);
+    }
+  };
+
+  const handleDownloadByUrl = async (url, id) => {
+    try {
+      const res = await fetch(`https://rivoz.in/api/call-logs/download-recording/${id}`, {
+        headers: {
+          "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to download recording.");
+
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `call_recording_${id}.mp3`;
+      a.click();
+      a.remove();
+
+      toast.success("Recording downloaded successfully!"); // ✅
+    } catch (err) {
+      toast.error("Download failed. Please try again."); // ✅
+      console.error("Recording download failed:", err);
+    }
+>>>>>>> 207876f8f0c5554669930ceb7f8f2acc69b61f6d
   };
 
   const getStatusLabel = (status) => {

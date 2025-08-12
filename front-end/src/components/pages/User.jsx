@@ -31,7 +31,7 @@ function UserProfile() {
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const response = await fetchWithAuth("https://3.95.238.222/api/user/user-profile/");
+        const response = await fetchWithAuth("https://rivoz.in/api/user/user-profile/");
         const data = await response.json();
 
         if (response.ok && data) {
@@ -69,7 +69,7 @@ function UserProfile() {
     setIsLoading(true);
 
     try {
-      const response = await fetchWithAuth("https://3.95.238.222/api/user/update-profile/", {
+      const response = await fetchWithAuth("https://rivoz.in/api/user/update-profile/", {
         method: "POST",
         body: JSON.stringify(formData),
       });

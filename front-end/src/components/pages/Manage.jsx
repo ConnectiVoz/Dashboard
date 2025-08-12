@@ -18,7 +18,7 @@ function Manage() {
       if (!token) return;
 
       try {
-        const res = await fetch("https://3.95.238.222/api/user/user-profile/", {
+        const res = await fetch("https://rivoz.in/api/user/user-profile/", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,

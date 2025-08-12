@@ -14,7 +14,7 @@ const ForgotPasswordPopup = ({ onClose }) => {
     if (!email) return;
 
     try {
-      const response = await fetch(`https://3.95.238.222/api/user/forgot-password/?email=${email}`, {
+      const response = await fetch(`https://rivoz.in/api/user/forgot-password/?email=${email}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
