@@ -17,13 +17,14 @@ import CallLogsTable from "./components/pages/CallLogsTable";
 import CRM from "./components/pages/CRM";
 import Campaign from "./components/pages/Campaign";
 import Reports from "./components/pages/Reports";
-import Manage from "./components/pages/Manage";
+import Profile from "./components/pages/Profile";
 import Login from "./components/Compo/Login";
 import Signup from "./components/Compo/signup";
 import ErrorPage from "./components/Errorpage";
 import ResetPassword from "./components/Compo/ResetPassword";
 import ManageAgents from "./components/pages/ManageAgents";
 import CallList from "./components/pages/CallList";
+import Balance from "./components/pages/Balance";
 
 const App = () => {
   const location = useLocation();
@@ -164,10 +165,18 @@ const App = () => {
           /> */}
 
           <Route
-            path="/manage/*"
+            path="/Profile/*"
             element={
               <PrivateRoute>
-                <Manage />
+                <Profile />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/Balance"
+            element={
+              <PrivateRoute>
+                <Balance />
               </PrivateRoute>
             }
           />

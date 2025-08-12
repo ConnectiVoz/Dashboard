@@ -21,7 +21,7 @@ function Manage() {
         const res = await fetch("https://rivoz.in/api/user/user-profile/", {
           method: "GET",
           headers: {
-            "Authorization": `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
@@ -60,7 +60,7 @@ function Manage() {
       <div className="flex-1 flex flex-col md:flex-row max-w-7xl mx-auto w-full px-2 md:px-6">
         {/* Sidebar for desktop */}
         <aside className="hidden md:block bg-white/60 backdrop-blur-xl border border-white/30 shadow-xl rounded-2xl p-6 w-64 mr-6 animate-fade-in-up">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800 drop-shadow">Manage</h2>
+          <h2 className="text-2xl font-bold mb-6 text-gray-800 drop-shadow">Your Profile</h2>
           <ul className="space-y-3">
             {navLinks.map((link) => (
               <li key={link.to}>
@@ -81,7 +81,7 @@ function Manage() {
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 p-4 md:p-6 bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 animate-fade-in-up mb-6">
+        <main className="flex-1 p-6 md:p-6 bg-white/60 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 animate-fade-in-up mb-6">
           <Routes>
             <Route path="/" element={<User />} />
             <Route path="user" element={<User />} />

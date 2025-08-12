@@ -13,14 +13,7 @@ export default function CallSheet() {
   const [duplicateFileUrl, setDuplicateFileUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
 
-  // Sample file format headers
-  const expectedHeaders = [
-    "Title",
-    "First Name",
-    "Last Name",
-    "Phone",
-    "Created At"
-  ];
+  const expectedHeaders = ["Title", "First Name", "Last Name", "Phone", "Created At"];
 
   useEffect(() => {
     fetchFiles();
@@ -52,21 +45,16 @@ export default function CallSheet() {
         const resJson = await uploadRes.json();
 
         if (resJson.duplicates && resJson.duplicates.length > 0) {
-  console.log("Duplicate data found", resJson.duplicates);
-  setDuplicateRows(resJson.duplicates);
-  if (resJson.duplicate_file_url) {
-    setDuplicateFileUrl(resJson.duplicate_file_url);
-  } else {
-    setDuplicateFileUrl("");
-  }
-  setShowDuplicateModal(true);
-} 
-        else if (resJson.success) {
-          // No duplicates → success
-
+          setDuplicateRows(resJson.duplicates);
+          if (resJson.duplicate_file_url) {
+            setDuplicateFileUrl(resJson.duplicate_file_url);
+          } else {
+            setDuplicateFileUrl("");
+          }
+          setShowDuplicateModal(true);
+        } else if (resJson.success) {
           setShowDuplicateModal(true);
         } else {
-          // No duplicates → success
           toast.success("✅ File uploaded successfully");
           fetchFiles();
           setShowUploadModal(false);
@@ -81,14 +69,12 @@ export default function CallSheet() {
     }
   };
 
-  // File selection — just store, don't upload
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setSelectedFile(file);
   };
 
-  // Validate format only, then upload and handle duplicates from backend
   const processAndUploadFile = async () => {
     if (!selectedFile) {
       toast.error("❌ Please select a file first");
@@ -102,7 +88,6 @@ export default function CallSheet() {
       const sheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-      // Validate headers only
       const fileHeaders = Object.keys(jsonData[0] || {});
       if (
         fileHeaders.length !== expectedHeaders.length ||
@@ -112,7 +97,6 @@ export default function CallSheet() {
         return;
       }
 
-      // Upload file, backend handles duplicate check
       uploadFile(selectedFile);
     } catch (err) {
       console.error("❌ Error processing file", err);
@@ -167,19 +151,21 @@ export default function CallSheet() {
   const filteredFiles = fileData.filter((f) => f.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="p-6 min-h-screen bg-gray-100 text-gray-900 dark:bg-gradient-to-br dark:from-gray-900 dark:to-black dark:text-white">
-      <h1 className="text-4xl font-bold mb-6 text-center">📁 Call Sheet Manager</h1>
+    <div className="p-4 sm:p-6 min-h-screen bg-gray-100 text-gray-900 dark:bg-gradient-to-br dark:from-gray-900 dark:to-black dark:text-white">
+      <h1 className="text-3xl sm:text-4xl font-bold mb-6 text-center">📁 Call Sheet Manager</h1>
 
       {/* Search bar */}
       <div className="max-w-xl mx-auto mb-4">
         <div className="flex items-center bg-white/10 rounded-lg overflow-hidden shadow">
-          <div className="px-3 text-white"><FaSearch /></div>
+          <div className="px-3 text-white">
+            <FaSearch />
+          </div>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by file name..."
-            className="w-full px-4 py-2 bg-transparent text-white placeholder-gray-400 focus:outline-none"
+            className="w-full px-3 py-2 sm:py-2 bg-transparent text-white placeholder-gray-400 focus:outline-none text-sm sm:text-base"
           />
         </div>
       </div>
@@ -188,7 +174,8 @@ export default function CallSheet() {
       <div className="text-center mb-6">
         <button
           onClick={() => setShowUploadModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 sm:px-6 sm:py-3 rounded-lg text-sm sm:text-base flex items-center justify-center mx-auto"
+          style={{ maxWidth: "220px" }}
         >
           <FaUpload className="inline-block mr-2" /> Upload Excel
         </button>
@@ -196,13 +183,11 @@ export default function CallSheet() {
 
       {/* Upload Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 p-6 rounded-lg w-full max-w-lg text-black dark:text-white">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-lg w-full max-w-lg text-black dark:text-white max-h-[90vh] overflow-auto">
             <h2 className="text-2xl font-bold mb-3">📤 Upload Call List File</h2>
             <p className="mb-2 text-sm">
-              Make sure your file includes columns: <strong>Title</strong>,{" "}
-              <strong>First Name</strong>, <strong>Last Name</strong>, <strong>Phone</strong>,{" "}
-              <strong>Created At</strong>.
+              Kindly use the sample template below to upload data. Any other template will not work
             </p>
             <a
               href="/sample_call_list.xlsx"
@@ -234,14 +219,15 @@ export default function CallSheet() {
 
       {/* Duplicate Modal */}
       {showDuplicateModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 p-6 rounded-lg w-full max-w-lg text-black dark:text-white">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-lg w-full max-w-lg text-black dark:text-white max-h-[90vh] overflow-auto">
             <h2 className="text-xl font-bold mb-3">⚠️ Duplicate Data Found</h2>
             <p className="mb-4">Some rows already exist in the system.</p>
             <ul className="max-h-40 overflow-y-auto text-sm border p-2 rounded">
               {duplicateRows.map((row, idx) => (
                 <li key={idx}>
-                  {row["Title"]} {row["First Name"]} {row["Last Name"]} — {row["Phone"]} — {row["Created At"]}
+                  {row["Title"]} {row["First Name"]} {row["Last Name"]} — {row["Phone"]} —{" "}
+                  {row["Created At"]}
                 </li>
               ))}
             </ul>
@@ -266,8 +252,8 @@ export default function CallSheet() {
         </div>
       )}
 
-      {/* File Table */}
-      <div className="max-w-4xl mx-auto bg-white/10 p-4 rounded-xl backdrop-blur-md">
+      {/* Desktop Table for md and up */}
+      <div className="hidden md:block max-w-4xl mx-auto bg-white/10 p-4 rounded-xl backdrop-blur-md">
         <h2 className="text-xl font-semibold mb-4">📚 Uploaded Files</h2>
         <table className="w-full text-sm table-auto">
           <thead className="bg-white/10">
@@ -307,11 +293,49 @@ export default function CallSheet() {
             ))}
             {filteredFiles.length === 0 && (
               <tr>
-                <td colSpan="5" className="text-center py-4">No files found</td>
+                <td colSpan="5" className="text-center py-4">
+                  No files found
+                </td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile List view for small screens */}
+      <div className="md:hidden max-w-xl mx-auto space-y-3">
+        {filteredFiles.length === 0 && (
+          <p className="text-center py-6 text-gray-500">No files found</p>
+        )}
+        {filteredFiles.map((f, idx) => (
+          <div
+            key={idx}
+            className="bg-white/10 p-4 rounded-lg backdrop-blur-md flex flex-col space-y-2 text-sm"
+          >
+            <div className="flex justify-between items-center">
+              <span className="font-semibold">
+                {idx + 1}. 📄 {f}
+              </span>
+              <input type="checkbox" className="form-checkbox" disabled />
+            </div>
+            <div className="flex space-x-4">
+              <button
+                onClick={() => handleDownload(f)}
+                className="text-green-500 hover:text-green-700 flex items-center space-x-1"
+                aria-label={`Download ${f}`}
+              >
+                <FaDownload /> <span>Download</span>
+              </button>
+              <button
+                onClick={() => handleDelete(f)}
+                className="text-red-500 hover:text-red-700 flex items-center space-x-1"
+                aria-label={`Delete ${f}`}
+              >
+                <FaTrash /> <span>Delete</span>
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

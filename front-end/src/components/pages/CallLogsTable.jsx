@@ -8,6 +8,13 @@ export default function CallLogsTable() {
   const [filteredLogs, setFilteredLogs] = useState([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [campaignFilter, setCampaignFilter] = useState("All");  // Added state for campaign filter
+
+  // Extract unique campaign names from callLogs for dropdown filter
+  const campaignNames = [
+    "All",
+    ...Array.from(new Set(callLogs.map((log) => log.campaign).filter(Boolean))),
+  ];
 
   const fetchCallLogs = async () => {
     try {
@@ -44,45 +51,21 @@ export default function CallLogsTable() {
     let filtered = callLogs.filter((log) =>
       Object.values(log).some((val) => String(val).toLowerCase().includes(search.toLowerCase()))
     );
+
     if (statusFilter !== "All") {
       filtered = filtered.filter(
         (log) => log.status === statusFilter || (statusFilter === "Not Picked" && log.status === "Ring")
       );
     }
-    setFilteredLogs(filtered);
-  }, [search, statusFilter, callLogs]);
 
-<<<<<<< HEAD
-  const handleDownloadByUrl = (url, id) => {
-    if (!url || url === "null") {
-      toast.info("No recording available to download.");
-      return;
+    // Filter by campaign name if selected
+    if (campaignFilter !== "All") {
+      filtered = filtered.filter((log) => log.campaign === campaignFilter);
     }
-    // download logic
-    fetch(`https://3.95.238.222/api/call-logs/download-recording/${id}`, {
-      headers: {
-        Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-        "Content-Type": "application/json",
-      },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to download recording.");
-        return res.blob();
-      })
-      .then((blob) => {
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = downloadUrl;
-        a.download = `call_recording_${id}.mp3`;
-        a.click();
-        a.remove();
-        toast.success("Recording downloaded successfully!");
-      })
-      .catch((err) => {
-        toast.error("Download failed. Please try again.");
-        console.error("Recording download failed:", err);
-      });
-=======
+
+    setFilteredLogs(filtered);
+  }, [search, statusFilter, campaignFilter, callLogs]);
+
   const handleCreate = async () => {
     try {
       const token = sessionStorage.getItem("token");
@@ -90,13 +73,13 @@ export default function CallLogsTable() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(formData),
       });
 
       if (res.ok) {
-        toast.success("Call log created successfully!"); // ✅
+        toast.success("Call log created successfully!");
         setShowCreateForm(false);
         setFormData({
           status: "",
@@ -109,10 +92,10 @@ export default function CallLogsTable() {
         fetchCallLogs();
       } else {
         const err = await res.json();
-        toast.error(err.message || "Failed to create call log."); // ✅
+        toast.error(err.message || "Failed to create call log.");
       }
     } catch (err) {
-      toast.error("Failed to create call log."); // ✅
+      toast.error("Failed to create call log.");
       console.error("Create error:", err);
     }
   };
@@ -125,20 +108,20 @@ export default function CallLogsTable() {
       const token = sessionStorage.getItem("token");
       const res = await fetch(`https://rivoz.in/api/call-logs/upload-recording`, {
         method: "POST",
-        headers: { "Authorization": `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
         body: form,
       });
       if (res.ok) {
-        toast.success("Recording uploaded successfully!"); // ✅
+        toast.success("Recording uploaded successfully!");
         setShowUpload(false);
         setUploadId("");
         setUploadFile(null);
         fetchCallLogs();
       } else {
-        toast.error("Failed to upload recording."); // ✅
+        toast.error("Failed to upload recording.");
       }
     } catch (err) {
-      toast.error("Upload error. Please try again."); // ✅
+      toast.error("Upload error. Please try again.");
       console.error("Upload error:", err);
     }
   };
@@ -147,7 +130,7 @@ export default function CallLogsTable() {
     try {
       const res = await fetch(`https://rivoz.in/api/call-logs/download-recording/${id}`, {
         headers: {
-          "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
+          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
           "Content-Type": "application/json",
         },
       });
@@ -162,40 +145,23 @@ export default function CallLogsTable() {
       a.click();
       a.remove();
 
-      toast.success("Recording downloaded successfully!"); // ✅
+      toast.success("Recording downloaded successfully!");
     } catch (err) {
-      toast.error("Download failed. Please try again."); // ✅
+      toast.error("Download failed. Please try again.");
       console.error("Recording download failed:", err);
     }
->>>>>>> 207876f8f0c5554669930ceb7f8f2acc69b61f6d
   };
 
   const getStatusLabel = (status) => {
     switch (status) {
       case "Connected":
-        return (
-          <span className="text-green-500 font-semibold">
-            ✅ Connected
-          </span>
-        );
+        return <span className="text-green-500 font-semibold">✅ Connected</span>;
       case "Missed":
-        return (
-          <span className="text-red-500 font-semibold">
-            ❌ Missed
-          </span>
-        );
+        return <span className="text-red-500 font-semibold">❌ Missed</span>;
       case "Pending":
-        return (
-          <span className="text-yellow-500 font-semibold">
-            🕒 Pending
-          </span>
-        );
+        return <span className="text-yellow-500 font-semibold">🕒 Pending</span>;
       case "Ring":
-        return (
-          <span className="text-gray-400 font-semibold">
-            ⚠️ Not Picked
-          </span>
-        );
+        return <span className="text-gray-400 font-semibold">⚠️ Not Picked</span>;
       default:
         return status;
     }
@@ -223,6 +189,19 @@ export default function CallLogsTable() {
             <option value="Missed">Missed</option>
             <option value="Pending">Pending</option>
             <option value="Not Picked">Not Picked</option>
+          </select>
+
+          {/* Campaign filter dropdown added */}
+          <select
+            className="px-4 py-2 rounded bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700"
+            value={campaignFilter}
+            onChange={(e) => setCampaignFilter(e.target.value)}
+          >
+            {campaignNames.map((name, i) => (
+              <option key={i} value={name}>
+                {name}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -254,11 +233,7 @@ export default function CallLogsTable() {
                 <td className="p-2">{log.call_date}</td>
                 <td className="p-2">{log.campaign}</td>
                 <td className="p-2">{log.start_time}</td>
-                <td className="p-2">
-                  {log.end_time && log.end_time !== ""
-                    ? log.end_time
-                    : "---"}
-                </td>
+                <td className="p-2">{log.end_time && log.end_time !== "" ? log.end_time : "---"}</td>
                 <td className="p-2">
                   {log.call_recording && log.call_recording !== "null" ? (
                     <button
@@ -317,8 +292,7 @@ export default function CallLogsTable() {
               </div>
               <div>
                 <strong>End Time:</strong>{" "}
-                {log.end_time && log.end_time !== "" ? "---" : log.end_time}
-                { !log.end_time || log.end_time === "" ? "---" : log.end_time }
+                {!log.end_time || log.end_time === "" ? "---" : log.end_time}
               </div>
             </div>
             <div className="mt-3 text-sm">

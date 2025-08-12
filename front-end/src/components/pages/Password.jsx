@@ -45,7 +45,7 @@ function Password() {
   };
 
   return (
-    <div className="bg-gray-900 text-gray-50 p-6 rounded-2xl shadow-md border border-gray-700">
+    <div className="bg-gray-900 text-gray-50 p-6 rounded-2xl shadow-md border border-gray-700 max-w-md mx-auto">
       <h2 className="text-2xl font-semibold mb-4">Change Password</h2>
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div>
@@ -70,7 +70,7 @@ function Password() {
         </div>
         <button
           type="submit"
-          className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded font-semibold mt-2"
+          className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded font-semibold mt-2 w-full"
         >
           Update Password
         </button>

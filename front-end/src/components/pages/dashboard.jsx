@@ -284,7 +284,7 @@ const Dashboard = () => {
       </div>
 
       {/* === Agents Section === */}
-      {agents.length > 0 ? (
+      {/* {agents.length > 0 ? (
         <div className="mt-12">
           <h2 className="text-lg sm:text-xl font-semibold text-white-800 dark:text-white mb-4">
             Your Agents
@@ -325,10 +325,10 @@ const Dashboard = () => {
         </div>
       ) : (
         <div className="mt-6 text-gray-500 dark:text-gray-400 text-center">No agents found.</div>
-      )}
+      )} */}
 
       {/* === Recent Activities === */}
-      <div className="mt-12">
+      {/* <div className="mt-12">
         <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white mb-4">
           Recent Activities
         </h2>
@@ -343,7 +343,7 @@ const Dashboard = () => {
             <p className="text-sm text-gray-500 dark:text-gray-400">No recent activities.</p>
           )}
         </div>
-      </div>
+      </div>*/}
     </div>
   );
 };

@@ -90,34 +90,81 @@ function UserProfile() {
   };
 
   return (
-    <div className="bg-gray-900 text-gray-50 p-6 rounded-2xl shadow-md border border-gray-700 hover:shadow-xl transition-all duration-500">
+    <div className="bg-gray-900 text-gray-50 p-6 rounded-2xl shadow-md border border-gray-700 hover:shadow-xl transition-all duration-500 max-w-3xl mx-auto">
       <h2 className="text-2xl font-semibold mb-4">Your Profile</h2>
 
       <form className="space-y-4" onSubmit={handleSubmit}>
-        <div className="flex gap-4">
-          <input name="first_name" type="text" placeholder="First Name" value={formData.first_name} onChange={handleChange}
-            className="flex-1 p-2 rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-400" />
-          <input name="last_name" type="text" placeholder="Last Name" value={formData.last_name} onChange={handleChange}
-            className="flex-1 p-2 rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-400" />
+        {/* First & Last Name */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <input
+            name="first_name"
+            type="text"
+            placeholder="First Name"
+            value={formData.first_name}
+            onChange={handleChange}
+            className="flex-1 p-2 rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-400 w-full"
+          />
+          <input
+            name="last_name"
+            type="text"
+            placeholder="Last Name"
+            value={formData.last_name}
+            onChange={handleChange}
+            className="flex-1 p-2 rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-400 w-full"
+          />
         </div>
 
-        <div className="flex gap-4">
-          <input name="phone_number" type="tel" placeholder="Phone Number" value={formData.phone} onChange={handleChange}
-            className="flex-1 p-2 rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-400" />
-          <input name="company_name" type="text" placeholder="Company Name" value={formData.company_name} onChange={handleChange}
-            className="flex-1 p-2 rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-400" />
+        {/* Phone & Company */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <input
+            name="phone"
+            type="tel"
+            placeholder="Phone Number"
+            value={formData.phone}
+            onChange={handleChange}
+            className="flex-1 p-2 rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-400 w-full"
+          />
+          <input
+            name="company_name"
+            type="text"
+            placeholder="Company Name"
+            value={formData.company_name}
+            onChange={handleChange}
+            className="flex-1 p-2 rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-400 w-full"
+          />
         </div>
 
-        <div className="flex gap-4">
-          <input name="address" type="text" placeholder="Address" value={formData.address} onChange={handleChange}
-            className="flex-1 p-2 rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-400" />
-          <input name="city" type="text" placeholder="City" value={formData.city} onChange={handleChange}
-            className="flex-1 p-2 rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-400" />
+        {/* Address & City */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <input
+            name="address"
+            type="text"
+            placeholder="Address"
+            value={formData.address}
+            onChange={handleChange}
+            className="flex-1 p-2 rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-400 w-full"
+          />
+          <input
+            name="city"
+            type="text"
+            placeholder="City"
+            value={formData.city}
+            onChange={handleChange}
+            className="flex-1 p-2 rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-400 w-full"
+          />
         </div>
 
-        <input name="state" type="text" placeholder="State" value={formData.state} onChange={handleChange}
-          className="w-full p-2 rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-400" />
+        {/* State */}
+        <input
+          name="state"
+          type="text"
+          placeholder="State"
+          value={formData.state}
+          onChange={handleChange}
+          className="w-full p-2 rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-400"
+        />
 
+        {/* Email Display */}
         <div>
           <label className="block font-semibold mb-1">My Email Address</label>
           <p className="text-gray-400">{email || "No email found in token"}</p>
@@ -125,10 +172,16 @@ function UserProfile() {
 
         <button
           type="submit"
-          className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded font-semibold mt-2 flex items-center justify-center gap-2"
+          disabled={isLoading}
+          className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded font-semibold mt-2 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {isLoading ? (
-            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg
+              className="animate-spin h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
             </svg>

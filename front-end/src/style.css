@@ -99,3 +99,25 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+/* Dark mode styles for DateRangePicker */
+.calendar-dark .rdrDateDisplayWrapper,
+.calendar-dark .rdrMonthAndYearPickers,
+.calendar-dark .rdrMonth {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+.calendar-dark .rdrDayNumber span {
+  color: #f9fafb !important;
+}
+
+.calendar-dark .rdrDayPassive span {
+  color: #9ca3af !important;
+}
+
+.calendar-dark .rdrSelected,
+.calendar-dark .rdrInRange,
+.calendar-dark .rdrStartEdge,
+.calendar-dark .rdrEndEdge {
+  background-color: #3b82f6 !important;
+}

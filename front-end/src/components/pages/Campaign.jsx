@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FaSearch } from "react-icons/fa";
+import { FaSearch, FaDownload } from "react-icons/fa";
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { toast } from "react-toastify";
 import * as XLSX from "xlsx";
@@ -17,11 +17,13 @@ export default function CampaignPage() {
   const [runningCampaigns, setRunningCampaigns] = useState(
     JSON.parse(localStorage.getItem("runningCampaigns") || "[]")
   );
+  const [callLogs, setCallLogs] = useState([]);
 
   useEffect(() => {
     fetchBots();
     fetchCampaigns();
     fetchCallLists();
+    fetchCallLogs();
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
@@ -66,6 +68,23 @@ export default function CampaignPage() {
     } catch (err) {
       console.error("Call lists fetch error", err);
       toast.error("Failed to fetch call lists.");
+    }
+  };
+
+  // Added: fetch call logs function
+  const fetchCallLogs = async () => {
+    try {
+      const res = await fetchWithAuth("https://rivoz.in/api/call-logs/list");
+      if (!res.ok) throw new Error(`API error ${res.status}: ${res.statusText}`);
+      const data = await res.json();
+      if (Array.isArray(data)) setCallLogs(data);
+      else {
+        toast.error("Call logs data format invalid.");
+        console.error("Call logs data format invalid:", data);
+      }
+    } catch (err) {
+      console.error("Call logs fetch error", err);
+      toast.error("Failed to fetch call logs.");
     }
   };
 
@@ -287,6 +306,39 @@ export default function CampaignPage() {
     );
   };
 
+  const handleDownloadCallLogs = (campaign) => {
+    const logsForCampaign = callLogs.filter((log) => {
+      if (log.bot_id && campaign.bot_id) {
+        return log.bot_id === campaign.bot_id;
+      }
+      return (
+        log.name?.toLowerCase() === campaign.name?.toLowerCase()
+      );
+    });
+
+    if (logsForCampaign.length === 0) {
+      toast.info("No call logs available for this campaign.");
+      return;
+    }
+
+    const sheetData = logsForCampaign.map((log) => ({
+      "Name": `${log.person.first_name} ${log.person.last_name}` || "",
+      "Phone": log.person.phone_number || "",
+      "Status": log.status || "",
+      "Call Date ": log.call_date || "",
+      "End Time": log.end_time && log.end_time !== "" ? log.end_time : "---" || "",
+      "Start Time": log.start_time || "",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(sheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Call Logs");
+
+    XLSX.writeFile(workbook, `${campaign.campaign_name}_call_logs_${Date.now()}.xlsx`);
+
+    toast.success(`Call logs for "${campaign.campaign_name}" downloaded!`);
+  };
+
   return (
     <div className="p-6 min-h-screen bg-gray-100 text-gray-900 dark:bg-gradient-to-br dark:from-gray-900 dark:to-black dark:text-white">
       <h1 className="text-4xl font-extrabold mb-8 text-center">📊 Campaign Manager</h1>
@@ -339,9 +391,7 @@ export default function CampaignPage() {
                         }
                         setSelectedFileName([...selectedFileName, file]);
                       } else {
-                        setSelectedFileName(
-                          selectedFileName.filter((f) => f !== file)
-                        );
+                        setSelectedFileName(selectedFileName.filter((f) => f !== file));
                       }
                     }}
                     className="mr-2 align-middle"
@@ -369,7 +419,7 @@ export default function CampaignPage() {
           </p>
         </div>
 
-        <div className="flex items-center -ml-96 bg-white/10 rounded-lg overflow-hidden shadow">
+        <div className="flex items-center bg-white/10 rounded-lg overflow-hidden shadow mb-6 max-w-xl mx-auto">
           <div className="px-3 text-white">
             <FaSearch />
           </div>
@@ -383,26 +433,31 @@ export default function CampaignPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto bg-white/5 rounded-xl backdrop-blur-md">
-        <table className="min-w-full table-auto text-sm">
+      {/* Responsive Table */}
+      <div className="overflow-x-auto bg-white/5 rounded-xl backdrop-blur-md max-w-full mx-auto">
+        <table className="min-w-[700px] table-auto text-sm">
           <thead className="bg-white/10 text-left">
             <tr>
-              <th className="px-4 py-3">Sr No.</th>
+              <th className="px-4 py-3 hidden sm:table-cell">Sr No.</th>
               <th className="px-6 py-3">Campaign Name</th>
-              <th className="px-6 py-3">Created Time</th>
-              <th className="px-6 py-3">Status</th>
+              <th className="px-6 py-3 hidden md:table-cell">Created Time</th>
+              <th className="px-6 py-3 hidden md:table-cell">Status</th>
               <th className="px-6 py-3">Actions</th>
+              <th className="px-7 py-3">Call Logs</th>
             </tr>
           </thead>
           <tbody>
             {filteredCampaigns.map((c, index) => (
-              <tr key={c.campaign_id} className="hover:bg-white/10">
-                <td className="px-4 py-3">{index + 1}</td>
-                <td className="px-6 py-3">{c.campaign_name}</td>
-                <td className="px-6 py-3">
+              <tr
+                key={c.campaign_id}
+                className="hover:bg-white/10 flex flex-col sm:table-row mb-4 sm:mb-0 rounded-lg sm:rounded-none p-4 sm:p-0"
+              >
+                <td className="px-4 py-3 hidden sm:table-cell">{index + 1}</td>
+                <td className="px-6 py-3 font-semibold">{c.campaign_name}</td>
+                <td className="px-6 py-3 hidden md:table-cell">
                   {new Date(c.campaign_scheduled_datetime).toLocaleString()}
                 </td>
-                <td className="px-6 py-3">
+                <td className="px-6 py-3 hidden md:table-cell">
                   {(c.campaign_status || "Active").charAt(0).toUpperCase() +
                     (c.campaign_status || "Active").slice(1)}
                 </td>
@@ -410,25 +465,34 @@ export default function CampaignPage() {
                   {runningCampaigns.includes(c.campaign_id) ? (
                     <button
                       onClick={() => handleStopCampaign(c.campaign_id)}
-                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded mb-2 sm:mb-0"
                     >
                       Stop
                     </button>
                   ) : (
                     <button
                       onClick={() => handleStartCampaign(c.campaign_id)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded"
+                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded mb-2 sm:mb-0"
                     >
                       Run Campaign
                     </button>
                   )}
+                </td>
+                <td className="px-6 py-3 text-center">
+                  <button
+                    title={`Download call logs for ${c.campaign_name}`}
+                    onClick={() => handleDownloadCallLogs(c)}
+                    className="text-blue-500 hover:text-blue-700"
+                  >
+                    <FaDownload size={18} />
+                  </button>
                 </td>
               </tr>
             ))}
 
             {filteredCampaigns.length === 0 && (
               <tr>
-                <td colSpan="5" className="text-center py-6">
+                <td colSpan="6" className="text-center py-6">
                   No campaigns found
                 </td>
               </tr>
