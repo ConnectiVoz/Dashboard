@@ -40,10 +40,8 @@ export default function CallSheet() {
         method: "POST",
         body: formData,
       });
-
-      if (uploadRes.ok) {
+      if (!uploadRes.ok) {
         const resJson = await uploadRes.json();
-
         if (resJson.duplicates && resJson.duplicates.length > 0) {
           setDuplicateRows(resJson.duplicates);
           if (resJson.duplicate_file_url) {
@@ -72,6 +70,16 @@ export default function CallSheet() {
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // ✅ Allow only Excel or CSV
+    const allowedExtensions = ["xlsx", "xls", "csv"];
+    const fileExt = file.name.split(".").pop().toLowerCase();
+    if (!allowedExtensions.includes(fileExt)) {
+      toast.error("❌ Only Excel (.xlsx, .xls) or CSV files are allowed");
+      e.target.value = null; // Reset file input
+      return;
+    }
+
     setSelectedFile(file);
   };
 
@@ -94,6 +102,12 @@ export default function CallSheet() {
         !expectedHeaders.every((h, i) => h === fileHeaders[i])
       ) {
         toast.error("❌ Invalid format of file");
+        return;
+      }
+
+      // ✅ Row limit check (only 10 rows allowed)
+      if (jsonData.length > 10) {
+        toast.error("❌ Row limit exceeded. Only 10 rows are allowed.");
         return;
       }
 
@@ -197,7 +211,13 @@ export default function CallSheet() {
               📎 Download Sample Template
             </a>
 
-            <input type="file" onChange={handleFileSelect} className="w-full mb-4" />
+            {/* ✅ File type restricted */}
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleFileSelect}
+              className="w-full mb-4"
+            />
 
             <div className="flex justify-between">
               <button
