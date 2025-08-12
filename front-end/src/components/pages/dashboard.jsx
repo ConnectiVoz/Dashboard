@@ -22,6 +22,7 @@ const Dashboard = () => {
   const [pendingCalls, setPendingCalls] = useState(0);
   const [totalCalls, setTotalCalls] = useState(0);
   const [totalCampaignsCount, setTotalCampaignsCount] = useState(0);
+  const [showAmountDatePicker, setShowAmountDatePicker] = useState(false);
   const navigate = useNavigate();
 
   const fetchData = async () => {
@@ -186,6 +187,19 @@ const Dashboard = () => {
       navigate(`/reports/calling?date=${selected}`);
     }
   };
+     {showAmountDatePicker && (
+          <div className="inline-block mb-8 border rounded-xl overflow-hidden shadow-lg calendar-dark">
+            <DateRangePicker
+              ranges={amountDateRange}
+              onChange={(item) => setAmountDateRange([item.selection])}
+            />
+            <p className="mt-2 text-sm px-2 pb-2">
+              Selected: {format(amountDateRange[0].startDate, "dd MMM yyyy")} -{" "}
+              {format(amountDateRange[0].endDate, "dd MMM yyyy")}
+            </p>
+          </div>
+        )}
+  
 
   const handleBlockedClick = (e) => {
     e.preventDefault();
@@ -222,26 +236,29 @@ const Dashboard = () => {
       </h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Account Balance - Disabled */}
-        <div onClick={handleBlockedClick}>
+        <div>
+          <NavLink to="/Balance">
           <StatCard
             icon={<FaMoneyBillWave />}
             label="Account Balance"
             value={`₹${data?.accountBalance || 0}`}
           />
+          </NavLink>
         </div>
 
-        {/* Amount Spent - Disabled */}
-        <div onClick={handleBlockedClick}>
+        
+        <div>
+          <NavLink to="/Balance">
           <StatCard icon={<FaWallet />} label="Amount Spent" value={`₹${amountSpent || 0}`}>
             <div className="-mt-14 ml-48">
               <input
                 type="date"
                 className="text-xs p-0 rounded bg-white dark:bg-gray-700 dark:text-white cursor-pointer"
-                onChange={handleCalendarChange}
+                onChange={showAmountDatePicker}
               />
             </div>
           </StatCard>
+        </NavLink>
         </div>
 
         <NavLink to="/call-logs">
