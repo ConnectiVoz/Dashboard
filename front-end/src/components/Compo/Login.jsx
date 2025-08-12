@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaGoogle, FaFacebookF, FaGithub } from "react-icons/fa";
 import { toast } from "react-toastify";
 
@@ -13,6 +13,15 @@ export default function Login({ onLogin }) {
   const [isLoggingIn, setIsLoggingIn] = useState(false); // <-- New state
 
   const backendURL = "https://rivoz.in"; // ⚠️ Use http if no SSL configured
+
+  // ✅ Auto-login if token exists
+  useEffect(() => {
+    const existingToken = sessionStorage.getItem("token");
+    if (existingToken) {
+      console.log("✅ Token found, redirecting to dashboard...");
+      window.location.href = "/dashboard";
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -36,12 +45,13 @@ export default function Login({ onLogin }) {
           console.error("❌ JSON parsing failed:", err);
           setLoginError("Invalid server response. Please contact support.");
           toast.error("Invalid server response.");
-          setIsLoggingIn(false); // Re-enable button on failure
+          setIsLoggingIn(false);
           return;
         }
 
         console.log("✅ Login success:", data);
 
+        // ✅ Save token & user
         sessionStorage.setItem("token", data.token || "dummy_token");
         sessionStorage.setItem(
           "user",
@@ -52,20 +62,20 @@ export default function Login({ onLogin }) {
         );
 
         toast.success("Login successful!");
-        setIsLoggingIn(false); // Re-enable button (optional here because of redirect)
+        setIsLoggingIn(false);
         window.location.href = "/dashboard";
         if (onLogin) onLogin();
       } else {
         const err = await response.json();
         setLoginError(err.message || "Invalid credentials.");
         toast.error(err.message || "Invalid credentials.");
-        setIsLoggingIn(false); // Re-enable button on failure
+        setIsLoggingIn(false);
       }
     } catch (error) {
       console.error("❌ Network error:", error);
       setLoginError("Network error. Please try again.");
       toast.error("Network error. Please try again.");
-      setIsLoggingIn(false); // Re-enable button on failure
+      setIsLoggingIn(false);
     }
   };
 
@@ -113,6 +123,7 @@ export default function Login({ onLogin }) {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-black relative overflow-hidden font-sans">
+      {/* Background */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-black/20 to-black/40 animate-pulse"></div>
         <img
@@ -122,6 +133,7 @@ export default function Login({ onLogin }) {
         />
       </div>
 
+      {/* Forgot Password Modal */}
       {showForgotModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-sm relative animate-fade-in-up">
@@ -162,6 +174,7 @@ export default function Login({ onLogin }) {
         </div>
       )}
 
+      {/* Login Content */}
       <div className="relative z-10 w-full max-w-6xl px-4 md:px-10 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-16">
         <div className="flex-1 text-white space-y-6">
           <h1 className="text-5xl font-bold leading-tight">
@@ -199,7 +212,7 @@ export default function Login({ onLogin }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full p-3 bg-white/10 text-white placeholder-gray-300 rounded-md border border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-              disabled={isLoggingIn} // disable inputs during login
+              disabled={isLoggingIn}
             />
             <input
               type={showPassword ? "text" : "password"}
@@ -207,7 +220,7 @@ export default function Login({ onLogin }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full p-3 bg-white/10 text-white placeholder-gray-300 rounded-md border border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-              disabled={isLoggingIn} // disable inputs during login
+              disabled={isLoggingIn}
             />
 
             <div className="flex justify-between items-center text-sm text-gray-300">
@@ -216,7 +229,7 @@ export default function Login({ onLogin }) {
                   type="checkbox"
                   className="accent-indigo-500"
                   onChange={() => setShowPassword(!showPassword)}
-                  disabled={isLoggingIn} // disable checkbox during login
+                  disabled={isLoggingIn}
                 />
                 Show Password
               </label>
@@ -224,17 +237,19 @@ export default function Login({ onLogin }) {
                 type="button"
                 className="hover:underline text-indigo-400 cursor-pointer"
                 onClick={() => setShowForgotModal(true)}
-                disabled={isLoggingIn} // disable forgot password during login
+                disabled={isLoggingIn}
               >
                 Forgot password?
               </button>
             </div>
 
-            {loginError && <div className="text-center text-sm text-red-500">{loginError}</div>}
+            {loginError && (
+              <div className="text-center text-sm text-red-500">{loginError}</div>
+            )}
 
             <button
               type="submit"
-              disabled={isLoggingIn} // disable login button during login
+              disabled={isLoggingIn}
               className={`w-full py-3 bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-500 text-white font-bold rounded-md shadow-lg transition-all duration-300 cursor-pointer
                 ${isLoggingIn ? "opacity-50 cursor-not-allowed" : "hover:scale-105 active:scale-95 hover:shadow-purple-500/30"}`}
             >
