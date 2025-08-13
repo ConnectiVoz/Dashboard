@@ -13,7 +13,7 @@ export default function CallSheet() {
   const [duplicateFileUrl, setDuplicateFileUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
 
-  const expectedHeaders = ["Title", "First Name", "Last Name", "Phone", "Created At"];
+  const expectedHeaders = ["Title", "First Name", "Last Name", "Phone"];
 
   useEffect(() => {
     fetchFiles();
@@ -32,40 +32,44 @@ export default function CallSheet() {
   };
 
   const uploadFile = async (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
+  const formData = new FormData();
+  formData.append("file", file);
 
-    try {
-      const uploadRes = await fetchWithAuth("https://rivoz.in/api/call_list/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!uploadRes.ok) {
-        const resJson = await uploadRes.json();
-        if (resJson.duplicates && resJson.duplicates.length > 0) {
-          setDuplicateRows(resJson.duplicates);
-          if (resJson.duplicate_file_url) {
-            setDuplicateFileUrl(resJson.duplicate_file_url);
-          } else {
-            setDuplicateFileUrl("");
-          }
-          setShowDuplicateModal(true);
-        } else if (resJson.success) {
-          setShowDuplicateModal(true);
-        } else {
-          toast.success("✅ File uploaded successfully");
-          fetchFiles();
-          setShowUploadModal(false);
-          setSelectedFile(null);
-        }
-      } else {
-        toast.error("❌ Upload failed");
+  try {
+    const uploadRes = await fetchWithAuth("https://rivoz.in/api/call_list/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (uploadRes.ok) {
+      console.log(uploadRes);
+      toast.success("✅ File uploaded successfully");
+
+      // If you need to parse JSON (e.g. duplicates)
+      const resJson = await uploadRes.json();
+      // If you want to handle duplicates, uncomment below:
+      /*
+      if (resJson.duplicates && resJson.duplicates.length > 0) {
+        setDuplicateRows(resJson.duplicates);
+        setDuplicateFileUrl(resJson.duplicate_file_url || "");
+        setShowDuplicateModal(true);
       }
-    } catch (err) {
-      console.error("❌ Upload failed", err);
-      toast.error("❌ Upload failed due to network error");
+      */
+      
+      fetchFiles();
+      setShowUploadModal(false);
+      setSelectedFile(null);
+    } else {
+      const resJson = await uploadRes.json();
+      console.log(resJson);
+      toast.error("❌ Upload failed");
     }
-  };
+  } catch (err) {
+    console.error("❌ Upload failed", err);
+    toast.error("❌ Upload failed due to network error");
+  }
+};
+
 
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
