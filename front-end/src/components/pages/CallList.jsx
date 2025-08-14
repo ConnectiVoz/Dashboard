@@ -3,7 +3,7 @@ import { FaUpload, FaTrash, FaDownload, FaSearch } from "react-icons/fa";
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { toast } from "react-toastify";
 import * as XLSX from "xlsx";
-
+import LoadingButton from "./LoadingButton";
 export default function CallSheet() {
   const [fileData, setFileData] = useState([]);
   const [search, setSearch] = useState("");
@@ -12,6 +12,8 @@ export default function CallSheet() {
   const [duplicateRows, setDuplicateRows] = useState([]);
   const [duplicateFileUrl, setDuplicateFileUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
 
   const expectedHeaders = ["Title", "First Name", "Last Name", "Phone"];
 
@@ -105,7 +107,7 @@ export default function CallSheet() {
         fileHeaders.length !== expectedHeaders.length ||
         !expectedHeaders.every((h, i) => h === fileHeaders[i])
       ) {
-        toast.error("❌ Invalid format of file");
+        toast.error("❌ Invalid file format");
         return;
       }
 
@@ -192,6 +194,7 @@ export default function CallSheet() {
       <div className="text-center mb-6">
         <button
           onClick={() => setShowUploadModal(true)}
+           loading={uploading}
           className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 sm:px-6 sm:py-3 rounded-lg text-sm sm:text-base flex items-center justify-center mx-auto"
           style={{ maxWidth: "220px" }}
         >

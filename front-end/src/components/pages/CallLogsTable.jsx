@@ -8,7 +8,7 @@ export default function CallLogsTable() {
   const [filteredLogs, setFilteredLogs] = useState([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [campaignFilter, setCampaignFilter] = useState("All");  // Added state for campaign filter
+  const [campaignFilter, setCampaignFilter] = useState("All"); // Added state for campaign filter
 
   // Extract unique campaign names from callLogs for dropdown filter
   const campaignNames = [
@@ -34,7 +34,9 @@ export default function CallLogsTable() {
       }
 
       const data = await res.json();
-      const logs = Array.isArray(data) ? data : data.data || data.callLogs || [];
+      const logs = Array.isArray(data)
+        ? data
+        : data.data || data.callLogs || [];
       setCallLogs(logs);
       setFilteredLogs(logs);
     } catch (err) {
@@ -49,12 +51,16 @@ export default function CallLogsTable() {
 
   useEffect(() => {
     let filtered = callLogs.filter((log) =>
-      Object.values(log).some((val) => String(val).toLowerCase().includes(search.toLowerCase()))
+      Object.values(log).some((val) =>
+        String(val).toLowerCase().includes(search.toLowerCase())
+      )
     );
 
     if (statusFilter !== "All") {
       filtered = filtered.filter(
-        (log) => log.status === statusFilter || (statusFilter === "Not Picked" && log.status === "Ring")
+        (log) =>
+          log.status === statusFilter ||
+          (statusFilter === "Not Picked" && log.status === "Ring")
       );
     }
 
@@ -106,11 +112,14 @@ export default function CallLogsTable() {
       form.append("id", uploadId);
       form.append("recording", uploadFile);
       const token = sessionStorage.getItem("token");
-      const res = await fetch(`https://rivoz.in/api/call-logs/upload-recording`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
-      });
+      const res = await fetch(
+        `https://rivoz.in/api/call-logs/upload-recording`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        }
+      );
       if (res.ok) {
         toast.success("Recording uploaded successfully!");
         setShowUpload(false);
@@ -128,12 +137,15 @@ export default function CallLogsTable() {
 
   const handleDownloadByUrl = async (url, id) => {
     try {
-      const res = await fetch(`https://rivoz.in/api/call-logs/download-recording/${id}`, {
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const res = await fetch(
+        `https://rivoz.in/api/call-logs/download-recording/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!res.ok) throw new Error("Failed to download recording.");
 
@@ -155,13 +167,19 @@ export default function CallLogsTable() {
   const getStatusLabel = (status) => {
     switch (status) {
       case "Connected":
-        return <span className="text-green-500 font-semibold">✅ Connected</span>;
+        return (
+          <span className="text-green-500 font-semibold">✅ Connected</span>
+        );
       case "Missed":
         return <span className="text-red-500 font-semibold">❌ Missed</span>;
       case "Pending":
-        return <span className="text-yellow-500 font-semibold">🕒 Pending</span>;
+        return (
+          <span className="text-yellow-500 font-semibold">🕒 Pending</span>
+        );
       case "Ring":
-        return <span className="text-gray-400 font-semibold">⚠️ Not Picked</span>;
+        return (
+          <span className="text-gray-400 font-semibold">⚠️ Not Picked</span>
+        );
       default:
         return status;
     }
@@ -232,12 +250,21 @@ export default function CallLogsTable() {
                 <td className="p-2">{getStatusLabel(log.status)}</td>
                 <td className="p-2">{log.call_date}</td>
                 <td className="p-2">{log.campaign}</td>
-                <td className="p-2">{log.start_time}</td>
-                <td className="p-2">{log.end_time && log.end_time !== "" ? log.end_time : "---"}</td>
+                <td className="p-2">
+                  {log.status === "Not Picked" || !log.start_time
+                    ? "---"
+                    : log.start_time}
+                </td>
+
+                <td className="p-2">
+                  {log.end_time && log.end_time !== "" ? log.end_time : "---"}
+                </td>
                 <td className="p-2">
                   {log.call_recording && log.call_recording !== "null" ? (
                     <button
-                      onClick={() => handleDownloadByUrl(log.call_recording, log.id)}
+                      onClick={() =>
+                        handleDownloadByUrl(log.call_recording, log.id)
+                      }
                       className="text-blue-600 hover:text-blue-800"
                       title="Download recording"
                     >
@@ -246,12 +273,13 @@ export default function CallLogsTable() {
                   ) : (
                     <button
                       disabled
-                      onClick={() => toast.info("No recording available to download.")}
+                      onClick={() =>
+                        toast.info("No recording available to download.")
+                      }
                       className="text-gray-400 cursor-not-allowed flex items-center gap-1"
-                      title="No recording available"
+                      title=""
                     >
                       <FaDownload />
-                      Download
                     </button>
                   )}
                 </td>
@@ -276,7 +304,8 @@ export default function CallLogsTable() {
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm text-gray-800 dark:text-gray-200">
               <div>
-                <strong>Name:</strong> {`${log.person.first_name} ${log.person.last_name}`}
+                <strong>Name:</strong>{" "}
+                {`${log.person.first_name} ${log.person.last_name}`}
               </div>
               <div>
                 <strong>Phone:</strong> {log.person.phone_number}
@@ -299,7 +328,9 @@ export default function CallLogsTable() {
               <strong>Recording:</strong>{" "}
               {log.call_recording && log.call_recording !== "null" ? (
                 <button
-                  onClick={() => handleDownloadByUrl(log.call_recording, log.id)}
+                  onClick={() =>
+                    handleDownloadByUrl(log.call_recording, log.id)
+                  }
                   className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
                 >
                   <FaDownload />
@@ -308,10 +339,17 @@ export default function CallLogsTable() {
               ) : (
                 <button
                   disabled
-                  onClick={() => toast.info("No recording available to download.")}
+                  onClick={() =>
+                    toast.info("No recording available to download.")
+                  }
                   className="text-gray-400 cursor-not-allowed flex items-center gap-2"
                 >
-                  <FaDownload />
+                  {/* Replace the icon with your "disabled" image */}
+                  <img
+                    src="https://cdn-icons-png.flaticon.com/512/12374/12374139.png"
+                    alt="Disabled"
+                    className="w-4 h-4"
+                  />
                   <span className="text-sm">Download</span>
                 </button>
               )}

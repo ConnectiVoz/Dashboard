@@ -170,6 +170,17 @@ const Dashboard = () => {
       console.error("Error fetching campaigns count:", err);
     }
   };
+//   useEffect(()=>{
+//     fetchData();
+//     if (loading) {
+//   return (
+//     <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-[#121212]">
+//       <div className="w-16 h-16 border-4 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
+//     </div>
+//   );
+// }
+
+//   },[])
 
   useEffect(() => {
     fetchData();
@@ -179,6 +190,14 @@ const Dashboard = () => {
     fetchCallLogsForStats();
     fetchCampaignsCount();
   }, []);
+  if (loading) {
+  return (
+    <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-[#121212]">
+      <div className="w-16 h-16 border-4 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
+    </div>
+  );
+}
+
 
   const handleCalendarChange = (e) => {
     const selected = e.target.value;

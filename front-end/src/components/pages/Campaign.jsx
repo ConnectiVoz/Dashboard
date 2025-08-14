@@ -365,7 +365,7 @@ export default function CampaignPage() {
             onChange={(e) => setCampaignName(e.target.value)}
           />
 
-          <p className="text-xs text-gray-400 mb-2">Select up to 2 files:</p>
+          {/* <p className="text-xs text-gray-400 mb-2">Select up to 2 files:</p> */}
 
           <div className="mb-4 max-h-48 overflow-auto border rounded p-2 bg-white/20 text-black dark:text-white">
             {file_name.map((file, i) => {
@@ -435,7 +435,7 @@ export default function CampaignPage() {
 
       {/* Responsive Table */}
       <div className="overflow-x-auto bg-white/5 rounded-xl backdrop-blur-md max-w-full mx-auto">
-        <table className="min-w-[700px] table-auto text-sm">
+        <table className="min-w-[1200px] table-auto text-sm">
           <thead className="bg-white/10 text-left">
             <tr>
               <th className="px-4 py-3 hidden sm:table-cell">Sr No.</th>

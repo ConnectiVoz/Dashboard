@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FaGoogle, FaFacebookF, FaGithub } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -10,23 +11,34 @@ export default function Login({ onLogin }) {
   const [resetEmail, setResetEmail] = useState("");
   const [resetMsg, setResetMsg] = useState("");
   const [loginError, setLoginError] = useState("");
-  const [isLoggingIn, setIsLoggingIn] = useState(false); // <-- New state
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const navigate = useNavigate();
 
-  const backendURL = "https://rivoz.in"; // ⚠️ Use http if no SSL configured
+  const backendURL = "https://rivoz.in";
 
-  // ✅ Auto-login if token exists
   useEffect(() => {
-    const existingToken = sessionStorage.getItem("token");
-    if (existingToken) {
-      console.log("✅ Token found, redirecting to dashboard...");
-      window.location.href = "/dashboard";
+    const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
+
+    if (token && user) {
+      try {
+        const parsedUser = JSON.parse(user);
+        if (parsedUser.email || parsedUser.password) {
+          navigate("/dashboard");
+        }
+      } catch {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("user");
+      }
     }
-  }, []);
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError("");
-    setIsLoggingIn(true); // Disable button here
+    setIsLoggingIn(true);
 
     try {
       const response = await fetch(`${backendURL}/api/user/login/`, {
@@ -35,82 +47,55 @@ export default function Login({ onLogin }) {
         body: JSON.stringify({ email, password }),
       });
 
-      if (response.ok) {
-        const text = await response.text();
-        let data;
-
-        try {
-          data = JSON.parse(text);
-        } catch (err) {
-          console.error("❌ JSON parsing failed:", err);
-          setLoginError("Invalid server response. Please contact support.");
-          toast.error("Invalid server response.");
-          setIsLoggingIn(false);
-          return;
-        }
-
-        console.log("✅ Login success:", data);
-
-        // ✅ Save token & user
-        sessionStorage.setItem("token", data.token || "dummy_token");
-        sessionStorage.setItem(
-          "user",
-          JSON.stringify({
-            email: data.email || "",
-            phone_number: data.phone_number || "",
-          })
-        );
-
-        toast.success("Login successful!");
-        setIsLoggingIn(false);
-        window.location.href = "/dashboard";
-        if (onLogin) onLogin();
-      } else {
-        const err = await response.json();
-        setLoginError(err.message || "Invalid credentials.");
-        toast.error(err.message || "Invalid credentials.");
-        setIsLoggingIn(false);
+      if (!response.ok) {
+        const errData = await response.json();
+        const msg = errData.message || "Invalid credentials.";
+        setLoginError(msg);
+        toast.error(msg);
+        return;
       }
-    } catch (error) {
-      console.error("❌ Network error:", error);
+
+      const data = await response.json();
+
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        sessionStorage.setItem("token", data.token);
+      }
+
+      const payload = JSON.parse(atob(data.token.split(".")[1]));
+      localStorage.setItem("user", JSON.stringify({ email: payload.email || "", password }));
+      sessionStorage.setItem("user", JSON.stringify({ email: payload.email || "", password }));
+
+      toast.success("Login successful!");
+      if (onLogin) onLogin();
+      navigate("/dashboard"); // ✅ no white flash
+    } catch {
       setLoginError("Network error. Please try again.");
       toast.error("Network error. Please try again.");
+    } finally {
       setIsLoggingIn(false);
     }
   };
 
   const handleForgotPassword = async (e) => {
     e.preventDefault();
-
     if (!resetEmail) {
       setResetMsg("Please enter your email.");
       return;
     }
 
-    const url = `${backendURL}/api/user/forgot-password/?email=${encodeURIComponent(
-      resetEmail
-    )}`;
-
+    const url = `${backendURL}/api/user/forgot-password/?email=${encodeURIComponent(resetEmail)}`;
     try {
-      const res = await fetch(url, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-      });
-
+      const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
       const contentType = res.headers.get("content-type");
 
       if (res.ok && contentType?.includes("application/json")) {
         toast.success("Reset link sent to your email!");
-        const data = await res.json();
-        console.log("✅ Forgot password success:", data);
         setResetMsg("Reset link sent to your email!");
       } else {
-        const text = await res.text();
-        console.warn("⚠️ HTML or unexpected response received:", text);
         setResetMsg("Reset failed. Please try again.");
       }
-    } catch (err) {
-      console.log("❌ Forgot password error:", err);
+    } catch {
       setResetMsg("Something went wrong.");
     }
 
@@ -122,6 +107,13 @@ export default function Login({ onLogin }) {
   };
 
   return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-black relative overflow-hidden font-sans">
+      {isLoggingIn && (
+        <div className="fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-50">
+          <div className="w-16 h-16 border-4 border-t-transparent border-indigo-500 rounded-full animate-spin"></div>
+          <p className="mt-4 text-white text-lg font-semibold">Processing...</p>
+        </div>
+      )}
     <div className="min-h-screen w-full flex items-center justify-center bg-black relative overflow-hidden font-sans">
       {/* Background */}
       <div className="absolute inset-0 z-0 pointer-events-none">
@@ -149,7 +141,9 @@ export default function Login({ onLogin }) {
               ×
             </button>
             <form onSubmit={handleForgotPassword} className="space-y-4">
-              <h2 className="text-xl font-bold text-black mb-2">Forgot Password</h2>
+              <h2 className="text-xl font-bold text-black mb-2">
+                Forgot Password
+              </h2>
               <p className="text-gray-700 mb-2 text-sm">
                 Enter your email to receive a password reset link.
               </p>
@@ -167,7 +161,9 @@ export default function Login({ onLogin }) {
                 Send Reset Link
               </button>
               {resetMsg && (
-                <div className="text-center text-sm text-green-600">{resetMsg}</div>
+                <div className="text-center text-sm text-green-600">
+                  {resetMsg}
+                </div>
               )}
             </form>
           </div>
@@ -244,32 +240,48 @@ export default function Login({ onLogin }) {
             </div>
 
             {loginError && (
-              <div className="text-center text-sm text-red-500">{loginError}</div>
+              <div className="text-center text-sm text-red-500">
+                {loginError}
+              </div>
             )}
 
             <button
               type="submit"
               disabled={isLoggingIn}
               className={`w-full py-3 bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-500 text-white font-bold rounded-md shadow-lg transition-all duration-300 cursor-pointer
-                ${isLoggingIn ? "opacity-50 cursor-not-allowed" : "hover:scale-105 active:scale-95 hover:shadow-purple-500/30"}`}
+                ${
+                  isLoggingIn
+                    ? "opacity-50 cursor-not-allowed"
+                    : "hover:scale-105 active:scale-95 hover:shadow-purple-500/30"
+                }`}
             >
               {isLoggingIn ? "Logging in..." : "Login"}
             </button>
 
             <div className="flex items-center justify-center gap-6 mt-6">
-              <a href="https://www.google.com/" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all cursor-pointer text-lg">
+              <a
+                href="https://www.google.com/"
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all cursor-pointer text-lg"
+              >
                 <FaGoogle />
               </a>
-              <a href="https://www.facebook.com/" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-blue-600 transition-all cursor-pointer text-lg">
+              <a
+                href="https://www.facebook.com/"
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-blue-600 transition-all cursor-pointer text-lg"
+              >
                 <FaFacebookF />
               </a>
-              <a href="https://github.com/" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-gray-800 transition-all cursor-pointer text-lg">
+              <a
+                href="https://github.com/"
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-gray-800 transition-all cursor-pointer text-lg"
+              >
                 <FaGithub />
               </a>
             </div>
           </form>
         </div>
       </div>
+    </div>
     </div>
   );
 }
