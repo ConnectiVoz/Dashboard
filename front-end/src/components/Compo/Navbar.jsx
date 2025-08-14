@@ -14,7 +14,9 @@ const Navbar = ({ toggleTheme, darkMode }) => {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      const token = sessionStorage.getItem("token");
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+
+      // ✅ If no token → don't even try to fetch
       if (!token) return;
 
       try {
@@ -26,6 +28,14 @@ const Navbar = ({ toggleTheme, darkMode }) => {
           },
         });
 
+        if (res.status === 401 || res.status === 403) {
+          // Token invalid or expired → logout
+          localStorage.clear();
+          sessionStorage.clear();
+          navigate("/login", { replace: true });
+          return;
+        }
+
         if (res.ok) {
           const data = await res.json();
           setUserData({
@@ -34,7 +44,9 @@ const Navbar = ({ toggleTheme, darkMode }) => {
           });
         } else {
           console.error("Unauthorized or invalid response");
-          navigate("/login");
+          localStorage.clear();
+          sessionStorage.clear();
+          navigate("/login", { replace: true });
         }
       } catch (err) {
         console.error("Failed to fetch user profile:", err);
@@ -47,9 +59,10 @@ const Navbar = ({ toggleTheme, darkMode }) => {
   if (hideFullNavbar) return null;
 
   const handleLogout = () => {
-     sessionStorage.clear();
-      navigate("/login", { replace: true });
-};
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <nav
@@ -83,7 +96,7 @@ const Navbar = ({ toggleTheme, darkMode }) => {
           isMenuOpen ? "flex" : "hidden"
         }`}
       >
-        {["/dashboard", "/call-logs", "/campaign", "/Call Sheet", "/Profile","/Balance"].map((route) => {
+        {["/dashboard", "/call-logs", "/campaign", "/Call Sheet", "/Profile", "/Balance"].map((route) => {
           const label = route.split("/")[1].replace("-", " ").replace("", "");
           return (
             <NavLink
