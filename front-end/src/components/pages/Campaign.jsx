@@ -1,3 +1,4 @@
+// 
 import React, { useState, useEffect } from "react";
 import { FaSearch, FaDownload } from "react-icons/fa";
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
@@ -71,7 +72,6 @@ export default function CampaignPage() {
     }
   };
 
-  // Added: fetch call logs function
   const fetchCallLogs = async () => {
     try {
       const res = await fetchWithAuth("https://rivoz.in/api/call-logs/list");
@@ -175,64 +175,27 @@ export default function CampaignPage() {
       }
 
       if (res.ok) {
+        console.log("✅ Campaign created successfully!");
+        console.log("Full campaign data:", JSON.stringify(data, null, 2));
+
         toast.success(data?.message || "✅ Campaign created successfully!");
 
-        // ** Duplicate data excel download logic starts here **
-        if (data?.["duplicate data skipped"]) {
-          let duplicates = [];
+        // ✅ Added: Fetch updated campaigns and set new campaign in state
+        const campaignsRes = await fetch("https://rivoz.in/api/campaigns/list", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const campaignsData = await campaignsRes.json();
+        const campaignList = Array.isArray(campaignsData?.data) ? campaignsData.data : [];
+        const newCampaign = campaignList.find((c) => c.campaign_name === campaignName);
 
-          try {
-            if (Array.isArray(data["duplicate data skipped"])) {
-              duplicates = data["duplicate data skipped"];
-            } else if (typeof data["duplicate data skipped"] === "string") {
-              const cleanStr = data["duplicate data skipped"]
-                .replace(/'/g, '"')
-                .replace(/None/g, "null");
-              duplicates = JSON.parse(cleanStr);
-            }
-          } catch (e) {
-            console.error(
-              "Error parsing 'duplicate data skipped':",
-              e,
-              data["duplicate data skipped"]
-            );
-            toast.error("⚠️ Could not parse duplicate data info.");
-          }
-
-          if (duplicates.length > 0) {
-            // Remove duplicate phones if any
-            const phoneSet = new Set();
-            const uniqueDuplicates = duplicates.filter((d) => {
-              if (!d.phone) return false;
-              if (phoneSet.has(d.phone)) return false;
-              phoneSet.add(d.phone);
-              return true;
-            });
-
-            // Map to excel columns
-            const worksheetData = uniqueDuplicates.map((d) => ({
-              Title: d.title || "",
-              "First Name": d.first_name || "",
-              "Last Name": d.last_name || "",
-              Phone: d.phone || "",
-              "Created At": d.created_at || "",
-            }));
-
-            const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Duplicates");
-
-            XLSX.writeFile(workbook, `duplicate_data_${Date.now()}.xlsx`);
-
-            toast.info("⚠ Duplicate data found. Excel download started.");
-          }
+        if (newCampaign) {
+          setCampaigns((prev) => [...prev, newCampaign]);
+          setFilteredCampaigns((prev) => [...prev, newCampaign]);
         }
-        // ** Duplicate data excel download logic ends here **
 
-        // Reset form & refresh campaigns
+        // Reset form
         setCampaignName("");
         setSelectedFileName([]);
-        fetchCampaigns();
       } else {
         toast.error(`❌ Failed to create campaign: ${data?.message || res.statusText}`);
       }
@@ -261,6 +224,7 @@ export default function CampaignPage() {
       if (res.ok) {
         toast.success("✅ Campaign started successfully!");
         fetchCampaigns();
+        fetchCallLogs(); // ✅ Added: refresh call logs after campaign start
       } else {
         toast.error("❌ Failed to start campaign.");
         setRunningCampaigns((prev) => prev.filter((id) => id !== campaignId));
@@ -311,9 +275,7 @@ export default function CampaignPage() {
       if (log.bot_id && campaign.bot_id) {
         return log.bot_id === campaign.bot_id;
       }
-      return (
-        log.name?.toLowerCase() === campaign.name?.toLowerCase()
-      );
+      return log.name?.toLowerCase() === campaign.name?.toLowerCase();
     });
 
     if (logsForCampaign.length === 0) {
@@ -364,8 +326,6 @@ export default function CampaignPage() {
             value={campaignName}
             onChange={(e) => setCampaignName(e.target.value)}
           />
-
-          {/* <p className="text-xs text-gray-400 mb-2">Select up to 2 files:</p> */}
 
           <div className="mb-4 max-h-48 overflow-auto border rounded p-2 bg-white/20 text-black dark:text-white">
             {file_name.map((file, i) => {
@@ -433,7 +393,6 @@ export default function CampaignPage() {
         </div>
       </div>
 
-      {/* Responsive Table */}
       <div className="overflow-x-auto bg-white/5 rounded-xl backdrop-blur-md max-w-full mx-auto">
         <table className="min-w-[1200px] table-auto text-sm">
           <thead className="bg-white/10 text-left">

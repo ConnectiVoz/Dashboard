@@ -9,7 +9,10 @@ const Navbar = ({ toggleTheme, darkMode }) => {
   const [userData, setUserData] = useState({ first_name: "", phone_number: "" });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const hideFullNavbar = location.pathname === "/login" || location.pathname === "/signup";
+  const hideFullNavbar = 
+  location.pathname === "/login"
+   || location.pathname === "/signup"
+  //  || location.pathname === "/PostLogin" ;
   const showOnlyLogo = location.pathname === "/reset-password";
 
   useEffect(() => {

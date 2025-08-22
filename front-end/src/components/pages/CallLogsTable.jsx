@@ -48,6 +48,46 @@ export default function CallLogsTable() {
   useEffect(() => {
     fetchCallLogs();
   }, []);
+// const fetchCallLogs = async () => {
+//   try {
+//     const token = sessionStorage.getItem("token");
+//     if (!token) throw new Error("User not authenticated.");
+
+//     const res = await fetchWithAuth(`https://rivoz.in/api/call-logs/list`, {
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//         Accept: "application/json",
+//       },
+//     });
+
+//     const contentType = res.headers.get("content-type");
+//     if (!contentType || !contentType.includes("application/json")) {
+//       const errorText = await res.text();
+//       throw new Error("Expected JSON, got: " + errorText);
+//     }
+
+//     const data = await res.json();
+//     const logs = Array.isArray(data)
+//       ? data
+//       : data.data || data.callLogs || [];
+
+//     // Set state
+//     setCallLogs(logs);
+//     setFilteredLogs(logs);
+
+//     // 🔹 Debug: campaign 84 ke logs console me print karo
+//     const campaign84Logs = logs.filter(l => l.campaign_id === 84);
+//     console.table(campaign84Logs);
+
+//   } catch (err) {
+//     console.error("❌ Fetch error:", err.message);
+//     toast.error("Failed to fetch call logs.");
+//   }
+// };
+
+// useEffect(() => {
+//   fetchCallLogs();
+// }, []);
 
   useEffect(() => {
     let filtered = callLogs.filter((log) =>
@@ -163,7 +203,10 @@ export default function CallLogsTable() {
       console.error("Recording download failed:", err);
     }
   };
-
+  const handlePlay = (url) => {
+    const audio = new Audio(url);
+    audio.play().catch(() => toast.error("Unable to play audio."));
+  };
   const getStatusLabel = (status) => {
     switch (status) {
       case "Connected":

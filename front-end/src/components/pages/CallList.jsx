@@ -3,7 +3,8 @@ import { FaUpload, FaTrash, FaDownload, FaSearch } from "react-icons/fa";
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { toast } from "react-toastify";
 import * as XLSX from "xlsx";
-import LoadingButton from "./LoadingButton";
+import LoadingButton from './LoadingButton'
+
 export default function CallSheet() {
   const [fileData, setFileData] = useState([]);
   const [search, setSearch] = useState("");
@@ -13,7 +14,6 @@ export default function CallSheet() {
   const [duplicateFileUrl, setDuplicateFileUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-
 
   const expectedHeaders = ["Title", "First Name", "Last Name", "Phone"];
 
@@ -25,64 +25,63 @@ export default function CallSheet() {
     try {
       const res = await fetchWithAuth("https://rivoz.in/api/call_list/files");
       const data = await res.json();
+      console.log("Files from API:", data);
+
       if (Array.isArray(data?.files)) {
         setFileData(data.files);
+      } else if (Array.isArray(data)) {
+        setFileData(data);
+      } else {
+        setFileData([]);
       }
     } catch (err) {
       console.error("❌ Failed to fetch file list", err);
+      setFileData([]);
     }
   };
 
   const uploadFile = async (file) => {
-  const formData = new FormData();
-  formData.append("file", file);
+    const formData = new FormData();
+    formData.append("file", file);
 
-  try {
-    const uploadRes = await fetchWithAuth("https://rivoz.in/api/call_list/upload", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const uploadRes = await fetchWithAuth("https://rivoz.in/api/call_list/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-    if (uploadRes.ok) {
-      console.log(uploadRes);
-      toast.success("✅ File uploaded successfully");
-
-      // If you need to parse JSON (e.g. duplicates)
       const resJson = await uploadRes.json();
-      // If you want to handle duplicates, uncomment below:
-      /*
-      if (resJson.duplicates && resJson.duplicates.length > 0) {
-        setDuplicateRows(resJson.duplicates);
-        setDuplicateFileUrl(resJson.duplicate_file_url || "");
-        setShowDuplicateModal(true);
+      console.log("Upload response JSON:", resJson);
+
+      if (uploadRes.ok) {
+        toast.success("✅ File uploaded successfully");
+        fetchFiles();
+        setShowUploadModal(false);
+        setSelectedFile(null);
+      } else {
+        // --- FIX: Show message or all errors ---
+        if (Array.isArray(resJson?.errors) && resJson.errors.length > 0) {
+          resJson.errors.forEach(err => toast.error(`❌ ${err}`));
+        } else {
+          const errMsg = resJson?.message || resJson?.error || "❌ Upload failed";
+          toast.error(`❌ ${errMsg}`);
+        }
       }
-      */
-      
-      fetchFiles();
-      setShowUploadModal(false);
-      setSelectedFile(null);
-    } else {
-      const resJson = await uploadRes.json();
-      console.log(resJson);
-      toast.error("❌ Upload failed");
+    } catch (err) {
+      console.error("❌ Upload failed", err);
+      toast.error("❌ Upload failed due to network error");
     }
-  } catch (err) {
-    console.error("❌ Upload failed", err);
-    toast.error("❌ Upload failed due to network error");
-  }
-};
-
+  };
 
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // ✅ Allow only Excel or CSV
     const allowedExtensions = ["xlsx", "xls", "csv"];
     const fileExt = file.name.split(".").pop().toLowerCase();
     if (!allowedExtensions.includes(fileExt)) {
       toast.error("❌ Only Excel (.xlsx, .xls) or CSV files are allowed");
-      e.target.value = null; // Reset file input
+      e.target.value = null;
       return;
     }
 
@@ -111,7 +110,6 @@ export default function CallSheet() {
         return;
       }
 
-      // ✅ Row limit check (only 10 rows allowed)
       if (jsonData.length > 10) {
         toast.error("❌ Row limit exceeded. Only 10 rows are allowed.");
         return;
@@ -168,7 +166,9 @@ export default function CallSheet() {
     }
   };
 
-  const filteredFiles = fileData.filter((f) => f.toLowerCase().includes(search.toLowerCase()));
+  const filteredFiles = fileData
+    .map((f) => f.file || f)
+    .filter((name) => name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="p-4 sm:p-6 min-h-screen bg-gray-100 text-gray-900 dark:bg-gradient-to-br dark:from-gray-900 dark:to-black dark:text-white">
@@ -191,16 +191,15 @@ export default function CallSheet() {
       </div>
 
       {/* Upload Button */}
-      <div className="text-center mb-6">
-        <button
-          onClick={() => setShowUploadModal(true)}
-           loading={uploading}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 sm:px-6 sm:py-3 rounded-lg text-sm sm:text-base flex items-center justify-center mx-auto"
-          style={{ maxWidth: "220px" }}
-        >
-          <FaUpload className="inline-block mr-2" /> Upload Excel
-        </button>
-      </div>
+    <LoadingButton
+  onClick={() => setShowUploadModal(true)}
+  loading={uploading}
+  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 sm:px-6 sm:py-3 rounded-lg text-sm sm:text-base flex items-center justify-center mx-auto"
+  style={{ maxWidth: "220px" }}
+>
+  <FaUpload className="inline-block mr-2" /> Upload Excel
+</LoadingButton>
+
 
       {/* Upload Modal */}
       {showUploadModal && (
@@ -218,7 +217,6 @@ export default function CallSheet() {
               📎 Download Sample Template
             </a>
 
-            {/* ✅ File type restricted */}
             <input
               type="file"
               accept=".xlsx,.xls,.csv"
@@ -279,7 +277,7 @@ export default function CallSheet() {
         </div>
       )}
 
-      {/* Desktop Table for md and up */}
+      {/* Desktop Table */}
       <div className="hidden md:block max-w-4xl mx-auto bg-white/10 p-4 rounded-xl backdrop-blur-md">
         <h2 className="text-xl font-semibold mb-4">📚 Uploaded Files</h2>
         <table className="w-full text-sm table-auto">
@@ -329,7 +327,7 @@ export default function CallSheet() {
         </table>
       </div>
 
-      {/* Mobile List view for small screens */}
+      {/* Mobile List view */}
       <div className="md:hidden max-w-xl mx-auto space-y-3">
         {filteredFiles.length === 0 && (
           <p className="text-center py-6 text-gray-500">No files found</p>

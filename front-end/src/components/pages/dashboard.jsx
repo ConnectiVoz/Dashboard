@@ -3,12 +3,15 @@ import { FaMoneyBillWave, FaChartPie, FaWallet } from "react-icons/fa";
 import { MdPendingActions } from "react-icons/md";
 import { BsFillTelephonePlusFill } from "react-icons/bs";
 import { SiGoogleanalytics } from "react-icons/si";
-import CircleProgress from "./CircleProgress";
 import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { motion } from "framer-motion";
 import { NavLink, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { DateRangePicker } from "react-date-range";
+import { format } from "date-fns";
 import "react-toastify/dist/ReactToastify.css";
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
 
 const Dashboard = () => {
   const [data, setData] = useState(null);
@@ -23,13 +26,19 @@ const Dashboard = () => {
   const [totalCalls, setTotalCalls] = useState(0);
   const [totalCampaignsCount, setTotalCampaignsCount] = useState(0);
   const [showAmountDatePicker, setShowAmountDatePicker] = useState(false);
+  const [amountDateRange, setAmountDateRange] = useState([
+    {
+      startDate: new Date(),
+      endDate: new Date(),
+      key: "selection",
+    },
+  ]);
   const navigate = useNavigate();
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const token = sessionStorage.getItem("token");
-      console.log("Fetching dashboard data with token:", token);
       if (!token) throw new Error("User not authenticated.");
       const response = await fetchWithAuth("https://rivoz.in/api/homepage/homepage", {
         method: "POST",
@@ -44,7 +53,6 @@ const Dashboard = () => {
       setData(json);
       setError(null);
     } catch (err) {
-      console.error("❌ Dashboard fetch error:", err.message);
       toast.error("Failed to fetch dashboard data.");
       setError("Something went wrong while loading dashboard data.");
       setData(null);
@@ -68,9 +76,7 @@ const Dashboard = () => {
         const result = await res.json();
         setAmountSpent(result.amount);
       }
-    } catch (err) {
-      // console.error("❌ Amount fetch error:", err);
-    }
+    } catch {}
   };
 
   const fetchAgents = async () => {
@@ -93,8 +99,7 @@ const Dashboard = () => {
       } else {
         setAgents([]);
       }
-    } catch (err) {
-      console.error("❌ Agents fetch error:", err);
+    } catch {
       toast.error("Failed to fetch agents.");
     }
   };
@@ -118,13 +123,11 @@ const Dashboard = () => {
       } else {
         toast.error("Failed to load user profile.");
       }
-    } catch (err) {
-      console.error("❌ Profile fetch error:", err);
+    } catch {
       toast.error("Error fetching user profile.");
     }
   };
 
-  // 🆕 New: Fetch call logs to get callsToday, pendingCalls, totalCalls
   const fetchCallLogsForStats = async () => {
     try {
       const token = sessionStorage.getItem("token");
@@ -147,9 +150,7 @@ const Dashboard = () => {
       setTotalCalls(logs.length);
       setCallsToday(logs.filter(log => log.call_date && log.call_date.startsWith(today)).length);
       setPendingCalls(logs.filter(log => log.status === "Pending").length);
-    } catch (err) {
-      console.error("Error fetching call logs for stats:", err);
-    }
+    } catch {}
   };
 
   const fetchCampaignsCount = async () => {
@@ -166,21 +167,8 @@ const Dashboard = () => {
       const data = await res.json();
       const list = Array.isArray(data?.data) ? data.data : [];
       setTotalCampaignsCount(list.length);
-    } catch (err) {
-      console.error("Error fetching campaigns count:", err);
-    }
+    } catch {}
   };
-//   useEffect(()=>{
-//     fetchData();
-//     if (loading) {
-//   return (
-//     <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-[#121212]">
-//       <div className="w-16 h-16 border-4 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
-//     </div>
-//   );
-// }
-
-//   },[])
 
   useEffect(() => {
     fetchData();
@@ -190,52 +178,11 @@ const Dashboard = () => {
     fetchCallLogsForStats();
     fetchCampaignsCount();
   }, []);
-  if (loading) {
-  return (
-    <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-[#121212]">
-      <div className="w-16 h-16 border-4 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
-    </div>
-  );
-}
-
-
-  const handleCalendarChange = (e) => {
-    const selected = e.target.value;
-    setSelectedDate(selected);
-    if (selected) {
-      navigate(`/reports/calling?date=${selected}`);
-    }
-  };
-     {showAmountDatePicker && (
-          <div className="inline-block mb-8 border rounded-xl overflow-hidden shadow-lg calendar-dark">
-            <DateRangePicker
-              ranges={amountDateRange}
-              onChange={(item) => setAmountDateRange([item.selection])}
-            />
-            <p className="mt-2 text-sm px-2 pb-2">
-              Selected: {format(amountDateRange[0].startDate, "dd MMM yyyy")} -{" "}
-              {format(amountDateRange[0].endDate, "dd MMM yyyy")}
-            </p>
-          </div>
-        )}
-  
-
-  const handleBlockedClick = (e) => {
-    e.preventDefault();
-    toast.info("🚫 This page is currently unavailable.");
-  };
 
   if (loading) {
     return (
-      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
-        {Array(6)
-          .fill()
-          .map((_, i) => (
-            <div
-              key={i}
-              className="bg-gray-200 dark:bg-white/10 rounded-2xl p-4 h-24 shadow-md"
-            ></div>
-          ))}
+      <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-[#121212]">
+        <div className="w-16 h-16 border-4 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -244,6 +191,14 @@ const Dashboard = () => {
     return (
       <div className="p-4 text-center text-red-600 dark:text-red-400">{error}</div>
     );
+
+  const handleCalendarToggle = () => {
+    setShowAmountDatePicker(!showAmountDatePicker);
+  };
+
+  const handleCalendarChange = (ranges) => {
+    setAmountDateRange([ranges.selection]);
+  };
 
   return (
     <div className="p-4 bg-gray-100 dark:bg-[#121212] min-h-screen transition-colors duration-300">
@@ -257,27 +212,37 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <div>
           <NavLink to="/Balance">
-          <StatCard
-            icon={<FaMoneyBillWave />}
-            label="Account Balance"
-            value={`₹${data?.accountBalance || 0}`}
-          />
+            <StatCard
+              icon={<FaMoneyBillWave />}
+              label="Account Balance"
+              value={`₹${data?.accountBalance || 0}`}
+            />
           </NavLink>
         </div>
 
-        
         <div>
-          <NavLink to="/Balance">
           <StatCard icon={<FaWallet />} label="Amount Spent" value={`₹${amountSpent || 0}`}>
             <div className="-mt-14 ml-48">
-              <input
-                type="date"
-                className="text-xs p-0 rounded bg-white dark:bg-gray-700 dark:text-white cursor-pointer"
-                onChange={showAmountDatePicker}
-              />
+              <button
+                onClick={handleCalendarToggle}
+                className="text-xs px-2 py-1 rounded bg-white dark:bg-gray-700 dark:text-white cursor-pointer border"
+              >
+                📅 Select Date
+              </button>
             </div>
+            {showAmountDatePicker && (
+              <div className="inline-block mt-4 border rounded-xl overflow-hidden shadow-lg calendar-dark">
+                <DateRangePicker
+                  ranges={amountDateRange}
+                  onChange={handleCalendarChange}
+                />
+                <p className="mt-2 text-sm px-2 pb-2">
+                  Selected: {format(amountDateRange[0].startDate, "dd MMM yyyy")} -{" "}
+                  {format(amountDateRange[0].endDate, "dd MMM yyyy")}
+                </p>
+              </div>
+            )}
           </StatCard>
-        </NavLink>
         </div>
 
         <NavLink to="/call-logs">
@@ -302,7 +267,6 @@ const Dashboard = () => {
         </NavLink>
       </div>
 
-      {/* === Analytics Section === */}
       <div className="mt-12">
         <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white mb-4">
           Analytics
@@ -318,68 +282,6 @@ const Dashboard = () => {
           <AnalyticsCard label="Total Agents" value={agents.length} link="/manage/agents" emoji="🤖" />
         </div>
       </div>
-
-      {/* === Agents Section === */}
-      {/* {agents.length > 0 ? (
-        <div className="mt-12">
-          <h2 className="text-lg sm:text-xl font-semibold text-white-800 dark:text-white mb-4">
-            Your Agents
-          </h2>
-          <div className="grid text-white sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {agents.slice(0, 3).map((agent, i) => {
-              const completed = agent.completed || Math.floor(Math.random() * 10) + 1;
-              const total = agent.total || 10;
-              const percentage = ((completed / total) * 100).toFixed(0);
-              return (
-                <div
-                  key={agent.id || i}
-                  className="p-4 rounded-xl bg-white dark:bg-white/10 shadow-md hover:shadow-xl transition-all duration-300"
-                >
-                  <h3 className="font-bold text-sm text-gray-800 dark:text-white mb-1">
-                    {agent.bot_name || "Agent"}
-                  </h3>
-                  <div className="w-full h-2 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden mb-1">
-                    <div className="h-full bg-red-500 rounded-full" style={{ width: `${percentage}%` }} />
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {completed} / {total}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-          {agents.length > 3 && (
-            <div className="mt-4 text-center">
-              <NavLink
-                to="/manage/agents"
-                className="text-blue-600 dark:text-blue-400 text-sm underline hover:text-blue-800 dark:hover:text-blue-300"
-              >
-                More
-              </NavLink>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="mt-6 text-gray-500 dark:text-gray-400 text-center">No agents found.</div>
-      )} */}
-
-      {/* === Recent Activities === */}
-      {/* <div className="mt-12">
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white mb-4">
-          Recent Activities
-        </h2>
-        <div className="bg-white dark:bg-white/10 p-4 rounded-xl shadow-md">
-          {data?.recentActivities?.length > 0 ? (
-            data.recentActivities.map((activity, index) => (
-              <div key={index} className="mb-2 last:mb-0">
-                <p className="text-sm text-gray-600 dark:text-gray-300">{activity}</p>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-400">No recent activities.</p>
-          )}
-        </div>
-      </div>*/}
     </div>
   );
 };
