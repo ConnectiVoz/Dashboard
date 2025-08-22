@@ -25,11 +25,7 @@ import ResetPassword from "./components/Compo/ResetPassword";
 import ManageAgents from "./components/pages/ManageAgents";
 import CallList from "./components/pages/CallList";
 import Balance from "./components/pages/Balance";
-import PostLogin from "./components/pages/PostLogin";
-import AgentList from "./components/pages/POST/AgentList";
-import CallHistory from "./components/pages/POST/CallHistory";
-import CallSheet from "./components/pages/POST/CallSHEET"
-import UserDetailsForm from "./components/pages/POST/UserDetailsForm";
+
 
 const App = () => {
   const location = useLocation();
@@ -138,22 +134,6 @@ const App = () => {
               </PrivateRoute>
             }
           />
-          {/* <Route 
-            path="/"
-            element={
-              <PrivateRoute>
-                <PostLogin />
-              </PrivateRoute>
-            }
-            />
-          <Route
-            path="/PostLogin"
-            element={
-              <PrivateRoute>
-                <PostLogin />
-              </PrivateRoute>
-            }
-          /> */}
   
           <Route
             path="/call-logs"
@@ -220,41 +200,6 @@ const App = () => {
               </PrivateRoute>
             }
           />
-
-          {/* ✅ If you want these pages separately instead of inside PostLogin */}
-          <Route
-             path="/AgentList"
-             element={
-              <PrivateRoute>
-                <AgentList />
-              </PrivateRoute>
-             }
-            />
-          <Route
-            path="/UserDetailsForm"
-            element={
-              <PrivateRoute>
-                <UserDetailsForm />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/CallSHEET"
-            element={
-              <PrivateRoute>
-                <CallSheet/>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Call History"
-            element={
-              <PrivateRoute>
-                <CallHistory />
-              </PrivateRoute>
-            }
-          />
-
           <Route path="*" element={<ErrorPage />} />
         </Routes>
       </div>

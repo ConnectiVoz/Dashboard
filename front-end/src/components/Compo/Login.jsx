@@ -215,7 +215,7 @@ export default function Login({ onLogin }) {
               Let's redefine how you connect — securely and beautifully.
             </p>
             <button className="px-6 py-3 bg-gradient-to-r from-white via-gray-300 to-white text-black font-bold rounded-lg hover:scale-105 hover:shadow-white/30 active:scale-95 transition-all duration-300 shadow-md cursor-pointer">
-              Get Started
+              <a href="http://184.72.67.254:5173/signup">Get Started with <span className="text-indigo-900 font-bold">Demo Call</span></a>
             </button>
           </div>
 
