@@ -12,7 +12,7 @@ export default function Login({ onLogin }) {
   const [resetMsg, setResetMsg] = useState("");
   const [loginError, setLoginError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [isCheckingToken, setIsCheckingToken] = useState(true); // ✅ new state
+  const [isCheckingToken, setIsCheckingToken] = useState(true);
   const navigate = useNavigate();
 
   const backendURL = "https://rivoz.in";
