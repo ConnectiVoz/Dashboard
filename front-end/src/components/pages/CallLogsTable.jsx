@@ -4,15 +4,136 @@ import { fetchWithAuth } from "../../utils/fetchWithAuth";
 import { toast } from "react-toastify";
 import jsPDF from "jspdf";
 
+// const SENTIMENTS = ["All", "Positive", "Negative", "Neutral", "Attitude"];
+
+// Dummy sentiment generator (no sentiment for Missed/Not Picked)
+// function getDummySentiment(log, index) {
+//   if (log.status === "Missed" || log.status === "Ring" || log.status === "Not Picked") return "";
+//   const arr = ["Positive", "Negative", "Neutral", "Attitude"];
+//   return arr[index % arr.length];
+// }
+
+// Dummy call logs (10 rows)
+// const dummyLogs = [
+//   {
+//     id: 1001,
+//     person: { first_name: "Amit", last_name: "Sharma", phone_number: "9876543210" },
+//     status: "Connected",
+//     call_date: "2024-08-01",
+//     campaign: "Health",
+//     start_time: "10:00",
+//     end_time: "10:05",
+//     call_recording: "",
+//     conversation: [{ role: "user", content: "Thank you for calling." }],
+//   },
+//   {
+//     id: 1002,
+//     person: { first_name: "Priya", last_name: "Singh", phone_number: "9123456780" },
+//     status: "Connected",
+//     call_date: "2024-08-02",
+//     campaign: "Sales",
+//     start_time: "11:00",
+//     end_time: "11:10",
+//     call_recording: "",
+//     conversation: [{ role: "assistant", content: "Your appointment is booked." }],
+//   },
+//   {
+//     id: 1003,
+//     person: { first_name: "Rahul", last_name: "Verma", phone_number: "9988776655" },
+//     status: "Connected",
+//     call_date: "2024-08-03",
+//     campaign: "Feedback",
+//     start_time: "12:00",
+//     end_time: "12:07",
+//     call_recording: "",
+//     conversation: [{ role: "user", content: "I am not happy with the service." }],
+//   },
+//   {
+//     id: 1004,
+//     person: { first_name: "Sneha", last_name: "Gupta", phone_number: "9001122334" },
+//     status: "Connected",
+//     call_date: "2024-08-04",
+//     campaign: "Survey",
+//     start_time: "13:00",
+//     end_time: "13:04",
+//     call_recording: "",
+//     conversation: [{ role: "assistant", content: "How was your experience?" }],
+//   },
+//   {
+//     id: 1005,
+//     person: { first_name: "Vikas", last_name: "Patel", phone_number: "9112233445" },
+//     status: "Connected",
+//     call_date: "2024-08-05",
+//     campaign: "Support",
+//     start_time: "14:00",
+//     end_time: "14:08",
+//     call_recording: "",
+//     conversation: [{ role: "user", content: "You guys have attitude." }],
+//   },
+//   {
+//     id: 1006,
+//     person: { first_name: "Meena", last_name: "Rao", phone_number: "9223344556" },
+//     status: "Connected",
+//     call_date: "2024-08-06",
+//     campaign: "Health",
+//     start_time: "15:00",
+//     end_time: "15:06",
+//     call_recording: "",
+//     conversation: [{ role: "assistant", content: "Everything is fine." }],
+//   },
+//   {
+//     id: 1007,
+//     person: { first_name: "Rohit", last_name: "Yadav", phone_number: "9334455667" },
+//     status: "Connected",
+//     call_date: "2024-08-07",
+//     campaign: "Sales",
+//     start_time: "16:00",
+//     end_time: "16:09",
+//     call_recording: "",
+//     conversation: [{ role: "user", content: "Great service!" }],
+//   },
+//   {
+//     id: 1008,
+//     person: { first_name: "Anjali", last_name: "Kumar", phone_number: "9445566778" },
+//     status: "Connected",
+//     call_date: "2024-08-08",
+//     campaign: "Feedback",
+//     start_time: "17:00",
+//     end_time: "17:03",
+//     call_recording: "",
+//     conversation: [{ role: "assistant", content: "You were rude." }],
+//   },
+//   {
+//     id: 1009,
+//     person: { first_name: "Suresh", last_name: "Mehta", phone_number: "9556677889" },
+//     status: "Connected",
+//     call_date: "2024-08-09",
+//     campaign: "Survey",
+//     start_time: "18:00",
+//     end_time: "18:05",
+//     call_recording: "",
+//     conversation: [{ role: "user", content: "Everything was normal." }],
+//   },
+//   {
+//     id: 1010,
+//     person: { first_name: "Neha", last_name: "Jain", phone_number: "9667788990" },
+//     status: "Connected",
+//     call_date: "2024-08-10",
+//     campaign: "Support",
+//     start_time: "19:00",
+//     end_time: "19:07",
+//     call_recording: "",
+//     conversation: [{ role: "assistant", content: "Bad experience." }],
+//   },
+// ];
+
 export default function CallLogsTable() {
   const [callLogs, setCallLogs] = useState([]);
   const [filteredLogs, setFilteredLogs] = useState([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [campaignFilter, setCampaignFilter] = useState("All");
-  const [selectedUser, setSelectedUser] = useState("All"); // 🆕 user filter
-
-  // For summary dropdown
+  const [sentimentFilter, setSentimentFilter] = useState("All");
   const [openSummaryId, setOpenSummaryId] = useState(null);
 
   const campaignNames = [
@@ -20,68 +141,56 @@ export default function CallLogsTable() {
     ...Array.from(new Set(callLogs.map((log) => log.campaign).filter(Boolean))),
   ];
 
-  // 🆕 Unique User list (Name + Phone)
-  const userOptions = [
-    "All",
-    ...Array.from(
-      new Set(
-        callLogs.map(
-          (log) =>
-            `${log.person.first_name} ${log.person.last_name} - ${log.person.phone_number}`
-        )
-      )
-    ),
-  ];
-
-  const fetchCallLogs = async () => {
-    try {
-      const token = sessionStorage.getItem("token");
-      if (!token) throw new Error("User not authenticated.");
-      const res = await fetchWithAuth(`https://rivoz.in/api/call-logs/list`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-
-      const data = await res.json();
-      const logs = Array.isArray(data) ? data : data.data || data.callLogs || [];
-      setCallLogs(logs);
-      setFilteredLogs([]); // 🆕 initially no data
-    } catch (err) {
-      console.error("❌ Fetch error:", err.message);
-      toast.error("Failed to fetch call logs.");
-    }
-  };
+  // Add dummy sentiment to each log (no sentiment for missed/not picked)
+  // const logsWithSentiment = [...dummyLogs, ...callLogs].map((log, i) => ({
+  //   ...log,
+  //   sentiment: getDummySentiment(log, i),
+  // }));
 
   useEffect(() => {
+    const fetchCallLogs = async () => {
+      try {
+        const token = sessionStorage.getItem("token");
+        if (!token) throw new Error("User not authenticated.");
+        const res = await fetchWithAuth(`https://rivoz.in/api/call-logs/list`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        });
+
+        const data = await res.json();
+        const logs = Array.isArray(data) ? data : data.data || data.callLogs || [];
+        setCallLogs(logs);
+        setFilteredLogs(logs);
+      } catch (err) {
+        console.error("❌ Fetch error:", err.message);
+        toast.error("Failed to fetch call logs.");
+      }
+    };
     fetchCallLogs();
   }, []);
 
   useEffect(() => {
-    let filtered = [...callLogs];
+    let filtered = callLogs.filter(
+      (log) =>
+        (log.person.first_name &&
+          log.person.first_name.toLowerCase().includes(search.toLowerCase())) ||
+        (log.person.last_name &&
+          log.person.last_name.toLowerCase().includes(search.toLowerCase())) ||
+        (log.person.phone_number &&
+          log.person.phone_number.toLowerCase().includes(search.toLowerCase())) ||
+        (log.campaign &&
+          log.campaign.toLowerCase().includes(search.toLowerCase())) ||
+        (log.call_date && log.call_date.includes(search)) ||
+        (log.status && log.status.toLowerCase().includes(search.toLowerCase())) ||
+        (log.start_time && log.start_time.includes(search)) ||
+        (log.end_time && log.end_time.includes(search)) ||
+        (log.sentiment &&
+          log.sentiment.toLowerCase().includes(search.toLowerCase())
+      )
+    );
 
-    // 🆕 Filter by selected user
-    if (selectedUser !== "All") {
-      filtered = filtered.filter(
-        (log) =>
-          `${log.person.first_name} ${log.person.last_name} - ${log.person.phone_number}` ===
-          selectedUser
-      );
-    } else {
-      filtered = []; // 🆕 agar user select nahi hua toh data empty
-    }
-
-    // Search
-    if (search) {
-      filtered = filtered.filter((log) =>
-        Object.values(log).some((val) =>
-          String(val).toLowerCase().includes(search.toLowerCase())
-        )
-      );
-    }
-
-    // Status filter
     if (statusFilter !== "All") {
       filtered = filtered.filter(
         (log) =>
@@ -90,13 +199,17 @@ export default function CallLogsTable() {
       );
     }
 
-    // Campaign filter
     if (campaignFilter !== "All") {
       filtered = filtered.filter((log) => log.campaign === campaignFilter);
     }
 
+    if (sentimentFilter !== "All") {
+      filtered = filtered.filter((log) => log.sentiment === sentimentFilter);
+    }
+
     setFilteredLogs(filtered);
-  }, [search, statusFilter, campaignFilter, selectedUser, callLogs]);
+    // eslint-disable-next-line
+  }, [search, statusFilter, campaignFilter, callLogs]);
 
   const handleDownloadByUrl = async (url, id) => {
     try {
@@ -124,7 +237,6 @@ export default function CallLogsTable() {
     }
   };
 
-  // 🎵 Play/Pause states
   const [currentAudio, setCurrentAudio] = useState(null);
   const [playingId, setPlayingId] = useState(null);
 
@@ -209,8 +321,7 @@ export default function CallLogsTable() {
         if (appointmentMsg) {
           summary += `Appointment is booked by user on ${log.call_date_time} `;
         } else {
-          summary +=
-            "The user did not book the appointment and disconnected the call";
+          summary += "The user did not book the appointment and disconnected the call";
         }
       }
     } else if (log.status === "Missed" || log.status === "Ring") {
@@ -228,20 +339,6 @@ export default function CallLogsTable() {
       {/* Filters */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
         <div className="flex gap-2 w-full md:w-auto">
-          {/* 🆕 User Dropdown */}
-          <select
-            className="px-4 py-2 rounded bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700"
-            value={selectedUser}
-            onChange={(e) => setSelectedUser(e.target.value)}
-          >
-            {userOptions.map((u, i) => (
-              <option key={i} value={u}>
-                {u}
-              </option>
-            ))}
-          </select>
-
-          {/* Existing filters */}
           <input
             type="text"
             placeholder="Search by any field..."
@@ -273,25 +370,47 @@ export default function CallLogsTable() {
           </select>
         </div>
       </div>
-      {/* Table (only visible when user is selected) */}
-      {selectedUser !== "All" && filteredLogs.length > 0 && (
-        <div className="overflow-x-auto shadow rounded-xl border dark:border-gray-700 border-gray-200 hidden md:block">
-          <table className="min-w-full text-sm text-left">
-            <thead className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100">
+
+      {/* Sentiment Filter above table }
+      <div className="flex justify-end mb-2">
+        <select
+          className="px-4 py-2 rounded bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700"
+          value={sentimentFilter}
+          onChange={(e) => setSentimentFilter(e.target.value)}
+        >
+          {SENTIMENTS.map((sent, i) => (
+            <option key={i} value={sent}>
+              {sent}
+            </option>
+          ))}
+        </select>
+      </div>*/}
+
+      <div className="overflow-x-auto shadow rounded-xl border dark:border-gray-700 border-gray-200 hidden md:block">
+        <table className="min-w-full text-sm text-left">
+          <thead className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100">
+            <tr>
+              <th className="p-2">Name</th>
+              <th className="p-2">Phone</th>
+              <th className="p-2">Status</th>
+              <th className="p-2">Call Date</th>
+              <th className="p-2">Campaign</th>
+              <th className="p-2">Start Time</th>
+              <th className="p-2">End Time</th>
+              <th className="p-2">Actions</th>
+              <th className="p-2">Show Summary</th>
+              {/* <th className="p-2">Sentiment</th> */}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredLogs.length === 0 ? (
               <tr>
-                <th className="p-2">Name</th>
-                <th className="p-2">Phone</th>
-                <th className="p-2">Status</th>
-                <th className="p-2">Call Date</th>
-                <th className="p-2">Campaign</th>
-                <th className="p-2">Start Time</th>
-                <th className="p-2">End Time</th>
-                <th className="p-2">Actions</th>
-                <th className="p-2">Show Summary</th>
+                <td colSpan={10} className="text-center py-8 text-gray-500">
+                  No call logs found.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filteredLogs.map((log, i) => (
+            ) : (
+              filteredLogs.map((log, i) => (
                 <React.Fragment key={i}>
                   <tr className="border-t border-gray-300 dark:border-gray-700">
                     <td className="p-2">{`${log.person.first_name} ${log.person.last_name}`}</td>
@@ -345,77 +464,55 @@ export default function CallLogsTable() {
                     <td className="p-2">
                       <button
                         onClick={() =>
-                          setOpenSummaryId(
-                            openSummaryId === log.id ? null : log.id
-                          )
+                          setOpenSummaryId(openSummaryId === log.id ? null : log.id)
                         }
                         className={`px-3 py-1 rounded-full font-semibold transition-colors duration-150 ${
                           openSummaryId === log.id
                             ? "bg-orange-100 text-blue-700 border border-blue-400 rounded-full"
                             : "bg-blue-600 text-white hover:bg-blue-700 rounded-full"
                         }`}
-                        title={
-                          openSummaryId === log.id
-                            ? "Hide Call Summary"
-                            : "Show Call Summary"
-                        }
+                        title={openSummaryId === log.id ? "Hide Call Summary" : "Show Call Summary"}
                       >
                         {openSummaryId === log.id ? "Hide Summary" : "Show Summary"}
                       </button>
                     </td>
+                    {/* <td className="p-2">{log.sentiment || "---"}</td> */}
                   </tr>
                   {openSummaryId === log.id && (
                     <tr>
-                      <td colSpan={9} className="bg-gray-50 dark:bg-gray-900 p-0">
+                      <td colSpan={10} className="bg-gray-50 dark:bg-gray-900 p-0">
                         <div className="w-full px-6 py-4">
-                          <div className="font-bold text-lg mb-2">
-                            Call Summary
-                          </div>
+                          <div className="font-bold text-lg mb-2">Call Summary</div>
                           <div
                             className="max-h-40 overflow-y-auto rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-3"
                             style={{ minHeight: "60px" }}
                           >
                             <div className="mb-2">
                               {(() => {
-                                if (
-                                  log.status === "Connected" &&
-                                  log.conversation &&
-                                  log.conversation.length > 0
-                                ) {
+                                if (log.status === "Connected" && log.conversation && log.conversation.length > 0) {
                                   const appointmentMsg = log.conversation.find(
                                     (msg) =>
                                       msg.content &&
-                                      (msg.content
-                                        .toLowerCase()
-                                        .includes("appointment") ||
-                                        msg.content
-                                          .toLowerCase()
-                                          .includes("book"))
+                                      (msg.content.toLowerCase().includes("appointment") ||
+                                        msg.content.toLowerCase().includes("book"))
                                   );
                                   if (appointmentMsg) {
                                     return (
                                       <span>
-                                        <b>Appointment is booked by user on:</b>{" "}
-                                        {log.call_date} at {log.start_time} -{" "}
-                                        {log.end_time}
+                                        <b>Appointment is booked by user on:</b> {log.call_date} at {log.start_time} - {log.end_time}
                                       </span>
                                     );
                                   } else {
                                     return (
                                       <span>
-                                        <b>Appointment is not booked:</b> User
-                                        disconnected the call without booking.
+                                        <b>Appointment is not booked:</b> User disconnected the call without booking.
                                       </span>
                                     );
                                   }
-                                } else if (
-                                  log.status === "Missed" ||
-                                  log.status === "Ring"
-                                ) {
+                                } else if (log.status === "Missed" || log.status === "Ring") {
                                   return (
                                     <span>
-                                      <b>Appointment Booked:</b> No (User did not
-                                      pick up or declined)
+                                      <b>Appointment Booked:</b> No (User did not pick up or declined)
                                     </span>
                                   );
                                 } else {
@@ -433,11 +530,120 @@ export default function CallLogsTable() {
                     </tr>
                   )}
                 </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+          {/* Mobile/Table view for call logs */}
+          <div className="md:hidden">
+            {filteredLogs.length === 0 ? (
+              <div className="text-center text-gray-500 py-10">
+                No call logs found.
+              </div>
+            ) : (
+              filteredLogs.map((log, i) => (
+                <div
+                  key={i}
+                  className="mb-4 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <div>
+                      <div className="font-bold text-lg">{`${log.person.first_name} ${log.person.last_name}`}</div>
+                      <div className="text-gray-500 text-sm">{log.person.phone_number}</div>
+                    </div>
+                    <div>{getStatusLabel(log.status)}</div>
+                  </div>
+                  <div className="text-sm mb-1">
+                    <span className="font-semibold">Date:</span> {log.call_date}
+                  </div>
+                  <div className="text-sm mb-1">
+                    <span className="font-semibold">Campaign:</span> {log.campaign}
+                  </div>
+                  <div className="text-sm mb-1">
+                    <span className="font-semibold">Start:</span> {log.start_time || "---"}
+                    {" | "}
+                    <span className="font-semibold">End:</span> {log.end_time || "---"}
+                  </div>
+                  <div className="flex gap-3 mt-2">
+                    {log.call_recording ? (
+                      <>
+                        <button
+                          onClick={() => handlePlayPause(log.call_recording, log.id)}
+                          className={`${
+                            playingId === log.id
+                              ? "text-red-600 hover:text-red-800"
+                              : "text-green-600 hover:text-green-800"
+                          }`}
+                          title={playingId === log.id ? "Pause Recording" : "Play Recording"}
+                        >
+                          {playingId === log.id ? <FaPause /> : <FaPlay />}
+                        </button>
+                        <button
+                          onClick={() => handleDownloadByUrl(log.call_recording, log.id)}
+                          className="text-blue-600 hover:text-blue-800"
+                          title="Download Recording"
+                        >
+                          <FaDownload />
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-gray-400">No recording</span>
+                    )}
+                    <button
+                      onClick={() => downloadTranscript(log)}
+                      className="text-purple-600 hover:text-purple-800"
+                      title="Download Transcript"
+                    >
+                      📝
+                    </button>
+                  </div>
+                  <div className="mt-3">
+                    {/* Only show button until clicked */}
+                    {openSummaryId === log.id ? (
+                      <div>
+                        <div className="font-bold mb-1">Call Summary</div>
+                        <div className="mb-2">{getCallSummary(log)}</div>
+                        {log.conversation && log.conversation.length > 0 && (
+                          <div>
+                            <div className="font-semibold mb-1">Conversation:</div>
+                            <div
+                              className="pl-2 max-h-40 overflow-y-auto bg-gray-50 dark:bg-gray-800 rounded p-2 text-sm"
+                              style={{ whiteSpace: "pre-line" }}
+                            >
+                              {log.conversation.map((msg, idx) => (
+                                <div key={idx} className="mb-1">
+                                  <span className="font-mono text-xs text-gray-500">
+                                    {msg.role === "assistant" ? "AI" : "User"}:
+                                  </span>{" "}
+                                  {msg.content}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => setOpenSummaryId(null)}
+                          className="text-blue-600 hover:text-green-800 font-semibold mt-2"
+                          title="Hide Call Summary"
+                        >
+                          Hide Summary
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setOpenSummaryId(log.id)}
+                        className="text-blue-600 hover:text-green-800 font-semibold"
+                        title="Show Call Summary"
+                      >
+                        Show Summary
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
     </div>
   );
 }
