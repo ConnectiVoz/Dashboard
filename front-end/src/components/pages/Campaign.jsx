@@ -33,6 +33,14 @@ export default function CampaignPage() {
     localStorage.setItem("runningCampaigns", JSON.stringify(runningCampaigns));
   }, [runningCampaigns]);
 
+  
+  useEffect(() => {
+  const interval = setInterval(() => {
+    fetchCampaigns(); // will keep refreshing the latest status
+  }, 5000); // refresh every 5s
+  return () => clearInterval(interval);
+}, []);
+
   const handleBeforeUnload = (e) => {
     if (runningCampaigns.length > 0) {
       e.preventDefault();
@@ -45,15 +53,21 @@ export default function CampaignPage() {
     try {
       const res = await fetch("https://rivoz.in/api/bots/list");
       const data = await res.json();
-      const filtered = data.filter((bot) => bot.bot_name === "ivozvoiceagent");
-      setBots(filtered);
-      if (filtered.length > 0) setSelectedBotId(filtered[0].id);
+  //     const filtered = data.filter((bot) => bot.bot_name === "ivozvoiceagent");
+  //     setBots(filtered);
+  //     if (filtered.length > 0) setSelectedBotId(filtered[0].id);
+  //   } catch (err) {
+  //     console.error("Bots fetch error", err);
+  //     toast.error("Failed to fetch bots.");
+  //   }
+  // };
+setBots(Array.isArray(data) ? data : []);
+      if (Array.isArray(data) && data.length > 0) setSelectedBotId(data[0].id);
     } catch (err) {
       console.error("Bots fetch error", err);
       toast.error("Failed to fetch bots.");
     }
   };
-
   const fetchCallLists = async () => {
     try {
       const res = await fetchWithAuth(
@@ -149,11 +163,12 @@ export default function CampaignPage() {
     }
 
     const payload = {
-      bot_id: selectedBotId,
-      call_list_file: selectedFileName,
-      name: campaignName,
-      scheduled_datetime: getISTDateTime(10),
-    };
+  bot_id: selectedBotId,
+  call_list_file: Array.isArray(selectedFileName) ? selectedFileName : [selectedFileName],
+  name: campaignName,
+  scheduled_datetime: getISTDateTime(1), 
+};
+    console.log("Creating campaign with payload:", payload);
 
     try {
       const res = await fetch("https://rivoz.in/api/campaigns/create", {
@@ -307,13 +322,53 @@ export default function CampaignPage() {
 
       <div className="mb-6 max-w-xl mx-auto">
         <div className="max-w-2xl mx-auto bg-white/10 backdrop-blur-md p-6 rounded-xl border border-white/10 shadow-lg mb-8">
-          <select
+          {/* <select
             className="w-full p-2 mb-4 rounded bg-white/20 text-black dark:text-white"
             value={selectedBotId}
-            disabled
+            onChange={e => setSelectedBotId(e.target.value)}
           >
             {bots.map((bot) => (
               <option key={bot.id} value={bot.id}>
+                {bot.bot_name}
+              </option>
+            ))}
+          </select> */}
+        
+          <select
+            className="w-full p-2 mb-4 rounded bg-white/20 text-black dark:text-white focus:outline-none"
+            value={selectedBotId}
+            onChange={e => setSelectedBotId(e.target.value)}
+            style={{
+              cursor: "pointer",
+              backgroundColor: "rgba(255,255,255,0.2)",
+            }}
+            onMouseOver={e => {
+              e.target.style.backgroundColor = "#e0e7ff";
+              e.target.style.color = "#1e293b";
+            }}
+            onMouseOut={e => {
+              e.target.style.backgroundColor = "rgba(255,255,255,0.2)";
+              e.target.style.color = "";
+            }}
+          >
+            {bots.map((bot) => (
+              <option
+                key={bot.id}
+                value={bot.id}
+                style={{
+                  background: "#fff",
+                  color: "#1e293b",
+                  cursor: "pointer",
+                }}
+                onMouseOver={e => {
+                  e.target.style.backgroundColor = "#e0e7ff";
+                  e.target.style.color = "#1e293b";
+                }}
+                onMouseOut={e => {
+                  e.target.style.backgroundColor = "#fff";
+                  e.target.style.color = "#1e293b";
+                }}
+              >
                 {bot.bot_name}
               </option>
             ))}
