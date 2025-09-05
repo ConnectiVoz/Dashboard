@@ -155,7 +155,7 @@ if (fatalError) {
     }
     const doc = new jsPDF();
     doc.setFontSize(14);
-    doc.text("📄 Call Transcript", 10, 15);
+    doc.text("Call Transcript", 10, 15);
     let y = 30;
     log.conversation.forEach((msg) => {
       const prefix = msg.role === "assistant" ? "AI:" : "User:";
